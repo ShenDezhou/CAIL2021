@@ -1,6 +1,6 @@
 {
   "model_type": "rnn",
-  "max_seq_len": 134,
+  "max_seq_len": 100,
   "model_path": "model/rnn/",
   "log_path": "log/",
 
@@ -9,18 +9,18 @@
   "test_file_path": "data/bmes_test.json",
   "trained_weight":"",
 
-  "batch_size": 2048,
+  "batch_size": 1024,
 
   "vocab_size": 3646,
   "embed_size": 256,
-  "hidden_size": 4096,
+  "hidden_size": 512,
   "num_classes": 31,
-  "dropout": 0.05,
+  "dropout": 0.5,
 
   "lr": 5e-3,
   "num_epoch": 10,
   "num_warmup_steps": 100,
-  "gradient_accumulation_steps": 1,
+  "gradient_accumulation_steps": 2,
   "max_grad_norm": 1e-2,
   "num_cores": 8,
   "serial_load": true,
