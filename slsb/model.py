@@ -914,7 +914,7 @@ class NERNet(nn.Module):
 
             embed_size += bichar_emb.size()[1]
 
-        self.drop = nn.Dropout(p=0.5)
+        self.drop = nn.Dropout(p=config.dropout)
         # self.sentence_encoder = SentenceEncoder(args, embed_size)
         self.sentence_encoder = nn.LSTM(embed_size, config.hidden_size, num_layers=1, batch_first=True,
                                         bidirectional=True)
@@ -984,7 +984,7 @@ class NERWNet(nn.Module):
 
         self.kv = WordKVMN(config)
 
-        self.drop = nn.Dropout(p=0.5)
+        self.drop = nn.Dropout(p=config.dropout)
         # self.sentence_encoder = SentenceEncoder(args, embed_size)
         self.sentence_encoder = nn.LSTM(embed_size, config.hidden_size, num_layers=1, batch_first=True,
                                         bidirectional=True)
@@ -1057,7 +1057,7 @@ class BERNet(nn.Module):
 
         self.bert = BertModel.from_pretrained(config.bert_model_path)
 
-        self.drop = nn.Dropout(p=0.5)
+        self.drop = nn.Dropout(p=config.dropout)
         # self.sentence_encoder = SentenceEncoder(args, embed_size)
         self.sentence_encoder = nn.LSTM(config.hidden_size, config.sent_hidden_size, num_layers=1, batch_first=True,
                                         bidirectional=True)

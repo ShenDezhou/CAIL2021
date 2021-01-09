@@ -9,7 +9,7 @@
   "test_file_path": "data/bmes_test.json",
   "trained_weight":"",
 
-  "batch_size": 512,
+  "batch_size": 256,
 
   "vocab_size": 3646,
   "hidden_size": 256,
