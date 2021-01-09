@@ -56,7 +56,7 @@ def result_to_json(string, tags):
             entity_name += char
             entity_start = idx
         elif (tag % 3) == 2:
-            type_index = tag // 3
+            type_index = (tag-1) // 3
             if (entity_name != "") and (i == last):
                 entity_name += char
                 item["entities"].append({"word": entity_name, "start": entity_start, "end": idx + 1, "type": all_types[type_index]})
@@ -64,7 +64,7 @@ def result_to_json(string, tags):
             else:
                 entity_name += char
         elif (tag % 3)+3 == 3:  # or i == len(zipped)
-            type_index = tag // 3
+            type_index = (tag-1) // 3
             entity_name += char
             item["entities"].append({"word": entity_name, "start": entity_start, "end": idx + 1, "type": all_types[type_index]})
             entity_name = ""
