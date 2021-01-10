@@ -572,11 +572,10 @@ class WordKVMN(nn.Module):
 
         # o = o.permute(1, 2, 3, 0)
         # o = torch.sum(o, 2)
-        p = torch.cat([p] * 4, dim=2)
 
-        o = torch.add(p, hidden_state)
+        #o = torch.add(p, hidden_state)
 
-        return o
+        return p
 
 
 class CRF(nn.Module):
@@ -988,7 +987,7 @@ class NERWNet(nn.Module):
         # self.sentence_encoder = SentenceEncoder(args, embed_size)
         self.sentence_encoder = nn.LSTM(embed_size, config.hidden_size, num_layers=1, batch_first=True,
                                         bidirectional=True)
-        self.emission = nn.Linear(config.hidden_size * 2, config.num_classes)
+        self.emission = nn.Linear(config.max_seq_len, config.num_classes)
         self.crf = CRF(config.num_classes, batch_first=True)
 
     def forward(self, char_id, length, label_id=None):
