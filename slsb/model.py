@@ -556,7 +556,7 @@ class WordKVMN(nn.Module):
         embedding_a = self.word_embedding_a(word_seq)
         # embedding_c = self.word_embedding_c(label_value_matrix)
         embedding_a = embedding_a.permute(0, 2, 1)
-        p = torch.matmul(hidden_state, embedding_a) / self.temper
+        p = torch.matmul(hidden_state, embedding_a) #/ self.temper
         # tmp_word_mask_metrix = torch.clamp(word_mask_metrix, 0, 1)
 
         # exp_u = torch.exp(u)
