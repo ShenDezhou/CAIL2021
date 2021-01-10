@@ -150,9 +150,13 @@ def main(out_file='output/result.txt',
         for id, item in zip(id_list,result):
             entities = item['entities']
             words = [d['word']+"_"+d['type'] for d in entities if d['type'] !='s']
+            unique_words = []
+            for w in words:
+                if w not in unique_words:
+                    unique_words.append(w)
             item = {}
             item['id'] = id
-            item['entities'] = words
+            item['entities'] = unique_words
             result_list.append(item)
         json.dump(result_list,fout,ensure_ascii=False, indent=4)
         #fout.write(" ".join(words) + "\n")
