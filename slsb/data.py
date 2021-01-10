@@ -286,12 +286,12 @@ class Data:
                         #entity = content[start: end + 1]
                         # entity_label = labels[start: end + 1]
                         print(ent)
-                        sc_tokens = self.tokenizer.tokenize(content)
-                        sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
-                        all_sc_list.append(sc_ids)
-                        all_label_list.append(labels)
-                        #reset labels
-                        labels = [0] * len(content)
+                    sc_tokens = self.tokenizer.tokenize(content)
+                    sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
+                    all_sc_list.append(sc_ids)
+                    all_label_list.append(labels)
+                    # #reset labels
+                    # labels = [0] * len(content)
                 else:
                     sc_tokens = self.tokenizer.tokenize(content)
                     sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
