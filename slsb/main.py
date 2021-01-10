@@ -79,7 +79,7 @@ def remove(text):
     cleantext = re.sub(cleanr, '', text)
     return cleantext
 
-def main(out_file='output/result.txt',
+def main(out_file='output/result.json',
          model_config='config/rnn_config.json'):
     """Test model for given test set on 1 GPU or CPU.
 
