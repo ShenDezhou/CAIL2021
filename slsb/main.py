@@ -149,7 +149,7 @@ def main(out_file='output/result.txt',
         result_list = []
         for id, item in zip(id_list,result):
             entities = item['entities']
-            words = [d['word']+"_"+d['type'] for d in entities if d['type'] !='s']
+            words = [d['word']+"-"+d['type'] for d in entities if d['type'] !='s']
             unique_words = []
             for w in words:
                 if w not in unique_words:
