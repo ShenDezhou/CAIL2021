@@ -1055,6 +1055,8 @@ class BERNet(nn.Module):
         #     embed_size += bichar_emb.size()[1]
 
         self.bert = BertModel.from_pretrained(config.bert_model_path)
+        for param in self.bert.parameters():
+            param.requires_grad = True
 
         self.drop = nn.Dropout(p=config.dropout)
         # self.sentence_encoder = SentenceEncoder(args, embed_size)

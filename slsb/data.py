@@ -368,7 +368,8 @@ class Data:
                 tokens += [0] * (self.max_seq_len - len(tokens))
                 segment_ids += [1] * (self.max_seq_len - len(tokens))
 
-            input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            # input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            input_ids = tokens
             input_mask = [1] * len(input_ids)
             tokens_len = len(input_ids)
             input_ids += [0] * (self.max_seq_len - tokens_len)
@@ -424,7 +425,8 @@ class Data:
 
 
 
-            input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            #input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            input_ids = tokens
             input_mask = [1] * len(input_ids)
             tokens_len = len(input_ids)
             input_ids += [0] * (self.max_seq_len - tokens_len)
