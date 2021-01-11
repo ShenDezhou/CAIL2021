@@ -134,7 +134,7 @@ class Data:
         self.model_type = model_type
         if 'bert' == self.model_type:
             self.tokenizer = BertTokenizer.from_pretrained(config.bert_model_path)#BertTokenizer(vocab_file)
-        elif 'bertxl' == self.model_type:
+        elif 'xlnet' == self.model_type:
             self.tokenizer = AutoTokenizer.from_pretrained(config.bert_model_path)
         else:  # rnn
             self.tokenizer = Tokenizer(vocab_file)
@@ -172,9 +172,9 @@ class Data:
         if 'bert' == self.model_type:
             dataset = self._convert_sentence_pair_to_bert_dataset(
                 sc_list,  label_list)
-        elif 'bertxl' == self.model_type:
-            dataset = self._convert_sentence_pair_to_bertxl_dataset(
-                sc_list,  label_list)
+        elif 'xlnet' == self.model_type:
+            dataset = self._convert_sentence_pair_to_bert_dataset(
+                sc_list, label_list)
         else:  # rnn
             dataset = self._convert_sentence_pair_to_rnn_dataset(
                 sc_list,  label_list)

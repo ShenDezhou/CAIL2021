@@ -24,15 +24,17 @@ from torch.utils.data import DataLoader
 
 from data import Data
 from evaluate import evaluate, handy_tool, calculate_accuracy_f1
-from model import RnnForSentencePairClassification, BertYForClassification, NERNet,NERWNet
+from model import RnnForSentencePairClassification, BertYForClassification, NERNet,NERWNet, BERNet, BERXLNet
 from utils import load_torch_model
 
 
 
 LABELS = ['1', '2', '3', '4', '5']
 
+
 MODEL_MAP = {
-    'bert': BertYForClassification,
+    'bert': BERNet,
+    'bertxl': BERXLNet,
     'rnn': NERNet,
     'rnnkv': NERWNet
 }
