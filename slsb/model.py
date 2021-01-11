@@ -1069,7 +1069,8 @@ class BERNet(nn.Module):
         # use anti-mask for answers-locator
         # mask = char_id.eq(0)
         # chars = self.char_emb(char_id)
-        chars, _ = self.bert(input_ids, attention_mask, token_type_ids, output_hidden_states=False)
+        _, _, layers = self.bert(input_ids, attention_mask, token_type_ids, output_hidden_states=True)
+        chars = layers[-1]
         #
         # # if self.bichar_emb is not None:
         # #     bichars = self.bichar_emb(bichar_id)

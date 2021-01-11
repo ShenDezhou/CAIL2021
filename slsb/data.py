@@ -360,7 +360,7 @@ class Data:
             #     assert len(tokens) == self.max_seq_len
             #     segment_ids = segment_ids[:self.max_seq_len//2] + segment_ids[-self.max_seq_len//2:]
             tokens = s1_list[i]
-            segment_ids = [1] * len(tokens)
+            segment_ids = [0] * len(tokens)
             if len(tokens) > self.max_seq_len:
                 tokens = tokens[:self.max_seq_len]
                 segment_ids = segment_ids[:self.max_seq_len]
