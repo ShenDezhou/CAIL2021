@@ -286,21 +286,19 @@ class Data:
                         #entity = content[start: end + 1]
                         # entity_label = labels[start: end + 1]
                         print(ent)
+                if 'rnn' == self.model_type:
                     sc_tokens = self.tokenizer.tokenize(content)
-                    sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
-                    all_sc_list.append(sc_ids)
-                    all_label_list.append(labels)
-                    # #reset labels
-                    # labels = [0] * len(content)
                 else:
-                    sc_tokens = self.tokenizer.tokenize(content)
-                    sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
-                    all_sc_list.append(sc_ids)
-                    all_label_list.append(labels)
-
+                    sc_tokens = list(content)
+                sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
+                all_sc_list.append(sc_ids)
+                all_label_list.append(labels)
             else:
                 content = row[1]
-                sc_tokens = self.tokenizer.tokenize(content)
+                if 'rnn' == self.model_type:
+                    sc_tokens = self.tokenizer.tokenize(content)
+                else:
+                    sc_tokens = list(content)
                 sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
                 all_sc_list.append(sc_ids)
 
