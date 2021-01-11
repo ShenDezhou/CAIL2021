@@ -330,7 +330,7 @@ class Data:
             all_s1_lengths.append(min(len(tokens_s1), self.max_seq_len))
             if len(tokens_s1) > self.max_seq_len:
                 tokens_s1 = tokens_s1[:self.max_seq_len]
-            #tokens_s1 = tokens_s1 #self.tokenizer.convert_tokens_to_ids(tokens_s1)
+            # tokens_s1 = self.tokenizer.convert_tokens_to_ids(tokens_s1)
             if len(tokens_s1) < self.max_seq_len:
                 tokens_s1 += [0] * (self.max_seq_len - len(tokens_s1))
             all_s1_ids.append(tokens_s1)
@@ -364,16 +364,16 @@ class Data:
             if len(tokens) > self.max_seq_len:
                 tokens = tokens[:self.max_seq_len]
                 segment_ids = segment_ids[:self.max_seq_len]
-            if len(tokens) < self.max_seq_len:
-                tokens += [0] * (self.max_seq_len - len(tokens))
-                segment_ids += [1] * (self.max_seq_len - len(tokens))
+            # if len(tokens) < self.max_seq_len:
+            #     tokens += [0] * (self.max_seq_len - len(tokens))
+            #     segment_ids += [1] * (self.max_seq_len - len(tokens))
 
             # input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
             input_ids = tokens
             input_mask = [1] * len(input_ids)
             tokens_len = len(input_ids)
             input_ids += [0] * (self.max_seq_len - tokens_len)
-            segment_ids += [0] * (self.max_seq_len - tokens_len)
+            segment_ids += [1] * (self.max_seq_len - tokens_len)
             input_mask += [0] * (self.max_seq_len - tokens_len)
 
             all_input_ids.append(input_ids)

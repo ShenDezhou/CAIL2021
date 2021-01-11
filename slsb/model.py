@@ -1070,7 +1070,7 @@ class BERNet(nn.Module):
         # mask = char_id.eq(0)
         # chars = self.char_emb(char_id)
         _, _, layers = self.bert(input_ids, attention_mask, token_type_ids, output_hidden_states=True)
-        chars = layers[-1]
+        chars = (layers[-1] + layers[0]) / 2
         #
         # # if self.bichar_emb is not None:
         # #     bichars = self.bichar_emb(bichar_id)
@@ -1078,7 +1078,8 @@ class BERNet(nn.Module):
         chars = self.drop(chars)
 
         # sen_encoded = self.sentence_encoder(chars, mask)
-        sen_encoded, _ = self.sentence_encoder(chars)
+        # sen_encoded, _ = self.sentence_encoder(chars)
+        sen_encoded = chars
         sen_encoded = self.drop(sen_encoded)
 
         bio_mask = char_id != 0
