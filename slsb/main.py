@@ -32,12 +32,14 @@ from utils import load_torch_model
 LABELS = ['1', '2', '3', '4', '5']
 
 
+
 MODEL_MAP = {
     'bert': BERNet,
-    'bertxl': BERXLNet,
+    'xlnet': BERXLNet,
     'rnn': NERNet,
     'rnnkv': NERWNet
 }
+
 
 all_types = ['LAK', 'OTH', 'HYD', 'ORG', 'LOC', 'RIV', 'RES', 'TER', 'DAM', 'PER']
 
