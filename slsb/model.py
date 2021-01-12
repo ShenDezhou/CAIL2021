@@ -1154,8 +1154,8 @@ class BERXLNet(nn.Module):
         chars = self.drop(chars)
 
         # sen_encoded = self.sentence_encoder(chars, mask)
-        # sen_encoded, _ = self.sentence_encoder(chars)
-        sen_encoded = chars
+        sen_encoded, _ = self.sentence_encoder(chars)
+        # sen_encoded = chars
         sen_encoded = self.drop(sen_encoded)
 
         bio_mask = char_id != 0
