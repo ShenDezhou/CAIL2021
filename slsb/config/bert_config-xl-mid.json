@@ -1,7 +1,7 @@
 {
   "model_type": "xlnet",
   "max_seq_len": 128,
-  "model_path": "model/bertxl/",
+  "model_path": "model/bertxlm/",
   "log_path": "log/",
 
   "train_file_path": "data/bmes_train.json",
@@ -28,5 +28,5 @@
   "max_grad_norm": 5e-4,
   "num_cores": 8,
 
-  "experiment_name": "BERTXL"
+  "experiment_name": "BERTXLM"
 }
