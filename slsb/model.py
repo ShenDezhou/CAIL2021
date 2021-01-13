@@ -1173,7 +1173,7 @@ class BERXLNet(nn.Module):
         if label_id is not None:
             crf_loss = -self.crf(emission, label_id, mask=bio_mask, reduction='mean')
             # -1,0-9 共11类
-            sen_encoded, _ = self.sentence_encoder(chars)
+            # sen_encoded, _ = self.sentence_encoder(chars)
             label_type = self.label_type(sen_encoded).squeeze(dim=-1)
             # label_type = F.log_softmax(label_type, dim=-1)
             target_type = (label_id + 2) // 3
