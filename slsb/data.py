@@ -310,35 +310,35 @@ class Data:
         for row in data_frame.itertuples(index=False):
             if train:
                 content = row[1]
-                bcontent = self.strQ2B(content)
-                qcontent = self.strB2Q(content)
-                for content in set([content,bcontent,qcontent]):
-                    labels = [0] * len(content)
-                    if row[2]:
-                        entities = row[2].split(";")
-                        for entity in entities:
-                            ent, ent_type = entity.split('-')
-                            try:
-                                start = content.index(ent)
-                            except:
-                                continue
-                            end = start + len(ent) - 1
-                            start, end = int(start), int(end)
-                            offset = all_types.index(ent_type) * 3
-                            labels[start] = offset+1
-                            labels[start + 1:end] = [offset+2] * (end - start - 1)
-                            labels[end] = offset+3
-                            # print for debug
-                            #entity = content[start: end + 1]
-                            # entity_label = labels[start: end + 1]
-                            print(ent)
-                    if 'rnn' == self.model_type:
-                        sc_tokens = self.tokenizer.tokenize(content)
-                    else:
-                        sc_tokens = list(content)
-                    sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
-                    all_sc_list.append(sc_ids)
-                    all_label_list.append(labels)
+                # bcontent = self.strQ2B(content)
+                # qcontent = self.strB2Q(content)
+                # for content in set([content,bcontent,qcontent]):
+                labels = [0] * len(content)
+                if row[2]:
+                    entities = row[2].split(";")
+                    for entity in entities:
+                        ent, ent_type = entity.split('-')
+                        try:
+                            start = content.index(ent)
+                        except:
+                            continue
+                        end = start + len(ent) - 1
+                        start, end = int(start), int(end)
+                        offset = all_types.index(ent_type) * 3
+                        labels[start] = offset+1
+                        labels[start + 1:end] = [offset+2] * (end - start - 1)
+                        labels[end] = offset+3
+                        # print for debug
+                        #entity = content[start: end + 1]
+                        # entity_label = labels[start: end + 1]
+                        print(ent)
+                if 'rnn' == self.model_type:
+                    sc_tokens = self.tokenizer.tokenize(content)
+                else:
+                    sc_tokens = list(content)
+                sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
+                all_sc_list.append(sc_ids)
+                all_label_list.append(labels)
             else:
                 content = row[1]
                 if 'rnn' == self.model_type:
