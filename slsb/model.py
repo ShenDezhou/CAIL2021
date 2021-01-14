@@ -1140,8 +1140,7 @@ class BERXLNet(nn.Module):
                                         bidirectional=True)
         self.emission = nn.Linear(config.sent_hidden_size * 2, config.num_classes)
         self.crf = CRF(config.num_classes, batch_first=True)
-        self.label_type = nn.Linear(config.sent_hidden_size * 2, (config.num_classes+2)//3)
-        self.crf_ = CRF((config.num_classes+2)//3, batch_first=True)
+        self.label_type = nn.Linear(config.sent_hidden_size * 2, 1)
         self.criterion = nn.MultiLabelSoftMarginLoss(reduction='mean') #label
 
     def forward(self, input_ids, attention_mask, token_type_ids, char_id, length, label_id=None):
@@ -1175,12 +1174,11 @@ class BERXLNet(nn.Module):
             crf_loss = -self.crf(emission, label_id, mask=bio_mask, reduction='mean')
             # 0-10 共11类
             # sen_encoded, _ = self.sentence_encoder(chars)
-            label_type = self.label_type(sen_encoded)
-            # label_type = label_type.squeeze(dim=-1)
+            label_type = self.label_type(sen_encoded).squeeze(dim=-1)
             # label_type = F.log_softmax(label_type, dim=-1)
             target_type = (label_id + 2) // 3
-            type_loss = -self.crf_(label_type, target_type, mask=bio_mask, reduction='mean')
-            #label_loss = self.criterion(label_type, target_type)
+            #type_loss = -self.crf_(label_type, target_type, mask=bio_mask, reduction='mean')
+            type_loss = self.criterion(label_type, target_type)
 
             return crf_loss + type_loss
         else:
