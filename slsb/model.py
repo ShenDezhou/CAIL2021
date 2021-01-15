@@ -1168,7 +1168,7 @@ class BERXLNet(nn.Module):
         else:
             bio_mask[0][:length[0]] = True
         emission = self.emission(sen_encoded)
-        emission = F.log_softmax(emission, dim=-1)
+        # emission = F.log_softmax(emission, dim=-1)
 
         if label_id is not None:
             crf_loss = -self.crf(emission, label_id, mask=bio_mask, reduction='mean')
