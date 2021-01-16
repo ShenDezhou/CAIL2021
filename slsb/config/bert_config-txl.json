@@ -10,7 +10,6 @@
 
   "batch_size": 16,
 
-  "robert_model_path": "../roberta3_ext",
   "bert_model_path": "../xlnet_base",
   "trained_weight":"",
   "hidden_size": 768,
