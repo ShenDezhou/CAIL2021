@@ -33,6 +33,7 @@ Usage:
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
 import json
+import random
 from typing import List
 
 import pandas
@@ -141,6 +142,12 @@ class Data:
             self.tokenizer = Tokenizer(vocab_file)
         self.max_seq_len = max_seq_len
         self.space_token = self.tokenizer.convert_tokens_to_ids([' '])[0]
+        self.vocab = {}
+        with open('data/entity.dic','r', encoding='utf-8') as f:
+            for line in f:
+                segs = line.strip().split(' ')
+                self.vocab[segs[0]] = segs[-1]
+        self.lvocab = list(self.vocab.items())
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
@@ -273,6 +280,30 @@ class Data:
             rstring += unichr(inside_code)
         return rstring
 
+    def augment(self, row):
+        line = row[1]
+        entities = row[2].split(';')
+        newrow = list(row)
+        newline = line
+        newentities = []
+        for entity in entities:
+            w,t = entity.split('-')
+            res = random.choice(self.lvocab)
+            newline = newline.replace(w, res[0])
+            newentities.append("-".join(res))
+        newrow[2] = ";".join(newentities)
+        newrow[1] = newline
+        return tuple(newrow)
+
+    def augments(self, row, n=10):
+        rows = []
+        if row[2]:
+            rows.append(row)
+            for _ in range(n):
+                rows.append(self.augment(row))
+        return rows
+
+
     def _load_file(self, filename, train: bool = True):
         """Load SMP-CAIL2020-Argmine train/test file.
 
@@ -309,36 +340,36 @@ class Data:
         all_sc_list, all_label_list = [], []
         for row in data_frame.itertuples(index=False):
             if train:
-                content = row[1]
-                # bcontent = self.strQ2B(content)
-                # qcontent = self.strB2Q(content)
-                # for content in set([content,bcontent,qcontent]):
-                labels = [0] * len(content)
-                if row[2]:
-                    entities = row[2].split(";")
-                    for entity in entities:
-                        ent, ent_type = entity.split('-')
-                        try:
-                            start = content.index(ent)
-                        except:
-                            continue
-                        end = start + len(ent) - 1
-                        start, end = int(start), int(end)
-                        offset = all_types.index(ent_type) * 3
-                        labels[start] = offset+1
-                        labels[start + 1:end] = [offset+2] * (end - start - 1)
-                        labels[end] = offset+3
-                        # print for debug
-                        #entity = content[start: end + 1]
-                        # entity_label = labels[start: end + 1]
-                        print(ent)
-                if 'rnn' == self.model_type:
-                    sc_tokens = self.tokenizer.tokenize(content)
-                else:
-                    sc_tokens = list(content)
-                sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
-                all_sc_list.append(sc_ids)
-                all_label_list.append(labels)
+                for _row in self.augments(row, n=999):
+                    content = _row[1]
+                    # bcontent = self.strQ2B(content)
+                    # qcontent = self.strB2Q(content)
+                    labels = [0] * len(content)
+                    if _row[2]:
+                        entities = _row[2].split(";")
+                        for entity in entities:
+                            ent, ent_type = entity.split('-')
+                            try:
+                                start = content.index(ent)
+                            except:
+                                continue
+                            end = start + len(ent) - 1
+                            start, end = int(start), int(end)
+                            offset = all_types.index(ent_type) * 3
+                            labels[start] = offset+1
+                            labels[start + 1:end] = [offset+2] * (end - start - 1)
+                            labels[end] = offset+3
+                            # print for debug
+                            #entity = content[start: end + 1]
+                            # entity_label = labels[start: end + 1]
+                            print(ent)
+                    if 'rnn' == self.model_type:
+                        sc_tokens = self.tokenizer.tokenize(content)
+                    else:
+                        sc_tokens = list(content)
+                    sc_ids = self.tokenizer.convert_tokens_to_ids(sc_tokens)
+                    all_sc_list.append(sc_ids)
+                    all_label_list.append(labels)
             else:
                 content = row[1]
                 if 'rnn' == self.model_type:

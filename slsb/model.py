@@ -1224,7 +1224,7 @@ class BERTXLNet(nn.Module):
 
         self.robert = AutoModel.from_pretrained(config.bert_model_path)
         for param in self.robert.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         self.bert = AutoModel.from_pretrained(config.bert_model_path)
         for param in self.bert.parameters():
@@ -1245,23 +1245,21 @@ class BERTXLNet(nn.Module):
         # chars = self.char_emb(char_id)
         # don't fine tune the bert model.(for bugs in the training steps)
         _, rolayers = self.robert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
-        rochars = (rolayers[-1] + rolayers[0]) / 2
+        rochars = (rolayers[-1] + rolayers[-2]) / 2
         rochars = self.drop(rochars)
 
         _,  layers = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
         chars = (layers[-1] + layers[0]) / 2
-        #
+        chars = self.drop(chars)
         # # if self.bichar_emb is not None:
         # #     bichars = self.bichar_emb(bichar_id)
         # #     chars = torch.cat([chars, bichars], dim=-1)
-        chars = self.drop(chars)
+
         # chars = (rolayers[-1] + rolayers[0]+layers[-1] + layers[0]) / 4
 
         # sen_encoded = self.sentence_encoder(chars, mask)
         # sen_encoded, _ = self.sentence_encoder(chars)
-        sen_encoded_ = rochars
-        sen_encoded_ = self.drop(sen_encoded_)
-        sen_encoded = (chars + rochars) / 2
+        sen_encoded = chars
         sen_encoded = self.drop(sen_encoded)
 
         bio_mask = char_id != 0
@@ -1278,7 +1276,7 @@ class BERTXLNet(nn.Module):
             crf_loss = -self.crf(emission, label_id, mask=bio_mask, reduction='mean')
             # 0-10 共11类
             # sen_encoded, _ = self.sentence_encoder(chars)
-            label_type = self.label_type(sen_encoded_).squeeze(dim=-1)
+            label_type = self.label_type(rochars).squeeze(dim=-1)
             # label_type = F.log_softmax(label_type, dim=-1)
             target_type = (label_id + 2) // 3
             # target_type = label_id
