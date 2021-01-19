@@ -8,15 +8,15 @@
   "valid_file_path": "data/bmes_valid.json",
   "test_file_path": "data/bmes_test.json",
 
-  "batch_size": 64,
+  "batch_size": 16,
 
   "bert_model_path": "../xlnet_base",
   "trained_weight":"",
   "hidden_size": 768,
   "sent_hidden_size": 384,
   "num_classes": 31,
-  "dropout": 0.05,
-  "augment": 99,
+  "dropout": 0.1,
+  "augment": 3,
 
   "lr": 4e-5,
   "num_epoch": 10,

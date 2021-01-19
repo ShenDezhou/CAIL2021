@@ -148,6 +148,12 @@ class Data:
                 segs = line.strip().split(' ')
                 self.vocab[segs[0]] = segs[-1]
         self.lvocab = list(self.vocab.items())
+        self.dlvocab = {}
+        for k,v in self.vocab.items():
+            self.dlvocab[v] = self.dlvocab.get(v, {})
+            self.dlvocab[v][k] = v
+        for k,v in self.dlvocab.items():
+            self.dlvocab[k] = list(v.items())
         self.boost = config.augment
 
     def load_file(self,
@@ -289,7 +295,7 @@ class Data:
         newentities = []
         for entity in entities:
             w,t = entity.split('-')
-            res = random.choice(self.lvocab)
+            res = random.choice(self.dlvocab[t])
             newline = newline.replace(w, res[0])
             newentities.append("-".join(res))
         newrow[2] = ";".join(newentities)
