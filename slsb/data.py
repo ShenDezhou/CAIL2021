@@ -148,6 +148,7 @@ class Data:
                 segs = line.strip().split(' ')
                 self.vocab[segs[0]] = segs[-1]
         self.lvocab = list(self.vocab.items())
+        self.boost = config.augment
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
@@ -340,7 +341,7 @@ class Data:
         all_sc_list, all_label_list = [], []
         for row in data_frame.itertuples(index=False):
             if train:
-                for _row in self.augments(row, n=999):
+                for _row in self.augments(row, n=self.boost):
                     content = _row[1]
                     # bcontent = self.strQ2B(content)
                     # qcontent = self.strB2Q(content)
