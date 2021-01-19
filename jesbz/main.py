@@ -143,8 +143,8 @@ def main(out_file='output/result.json',
     # train_acc, train_f1 = calculate_accuracy_f1(
     #     train_answers, train_predictions)
     # print(train_acc, train_f1)
-    # test_json = json.load(open(config.test_file_path, 'r', encoding='utf-8'))
-    # id_list = [item['id'] for item in test_json]
+    test_json = json.load(open(config.test_file_path, 'r', encoding='utf-8'))
+    text_list = [item['text'] for item in test_json]
 
     mod_tokens_list = handy_tool(token_list, length_list)
     result = [result_to_json(t, s) for t,s in zip(mod_tokens_list, answer_list)]
@@ -152,7 +152,7 @@ def main(out_file='output/result.json',
     # 4. Write answers to file
     with open(out_file, 'w', encoding='utf8') as fout:
         result_list = []
-        for  item in result:
+        for text, item in zip(text_list,result):
             entities = item['entities']
             words = [d['word']+"-"+d['type'] for d in entities if d['type'] !='s']
             unique_words = []
@@ -160,7 +160,7 @@ def main(out_file='output/result.json',
                 if w not in unique_words:
                     unique_words.append(w)
             item = {}
-            # item['id'] = id
+            item['text'] = text
             item['entities'] = unique_words
             result_list.append(item)
         json.dump(result_list,fout,ensure_ascii=False, indent=4)
