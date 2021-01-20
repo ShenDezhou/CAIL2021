@@ -28,6 +28,10 @@ cors_allow_all = CORS(allow_all_origins=True,
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    '-p', '--port', default=58081,
+    help='falcon server port')
+
+parser.add_argument(
     '-c', '--config_file', default='config/rnn_config.json',
     help='model config file')
 args = parser.parse_args()
@@ -43,6 +47,8 @@ MODEL_MAP = {
 
 
 all_types = ['TOT', 'PHA', 'RES']
+all_types_cn = ['总金额', '分期金额', '其他金额']
+all_type_dic = dict(zip(all_types, all_types_cn))
 
 def result_to_json(string, tags):
     item = {"string": string, "entities": []}
@@ -145,8 +151,9 @@ class TorchResource:
         entity_list = []
         for item in result:
             entities = item['entities']
-            words = [d['word']+"-"+d['type'] for d in entities if d['type'] !='s']
+            words = [d['word'] +"-"+all_type_dic[d['type']] for d in entities if d['type'] !='s']
             entity_list.extend(words)
+
         return {"answer": entity_list}
 
     def on_get(self, req, resp):
@@ -180,4 +187,4 @@ if __name__=="__main__":
     api = falcon.API(middleware=[cors_allow_all.middleware])
     api.req_options.auto_parse_form_urlencoded = True
     api.add_route('/z', TorchResource())
-    waitress.serve(api, port=58080, threads=48, url_scheme='http')
+    waitress.serve(api, port=args.port, threads=48, url_scheme='http')
