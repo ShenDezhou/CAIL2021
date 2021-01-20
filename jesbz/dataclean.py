@@ -38,10 +38,10 @@ def cleanduplicationfullcharacterchinese2(raw_html):
 #     return cleantext
 
 def shortenlines(raw_html):
-    cleantext = str(raw_html).replace(r"\n", "", 10 ** 10)
+    cleantext = str(raw_html).replace(r"\n", "\n", 10 ** 10)
     cleantext = cleantext.replace(r"\r","", 10**10)
     cleantext = cleantext.replace(r"?", "", 10 ** 10)
-    cleantext = cleantext.replace(r" ", "", 10 ** 10)
+    # cleantext = cleantext.replace(r" ", "", 10 ** 10)
     return cleantext
 
 
