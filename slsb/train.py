@@ -223,9 +223,9 @@ class Trainer:
                 self.config.model_path, self.config.experiment_name,
                 self.config.model_type + '-' + str(epoch + 1) + '.bin'))
 
-            if results[-3] > best_train_f1:
+            if results[-1] > best_train_f1:
                 best_model_state_dict = deepcopy(self.model.state_dict())
-                best_train_f1 = results[-3]
+                best_train_f1 = results[-1]
 
         return best_model_state_dict
 
@@ -293,7 +293,7 @@ def main(config_file='config/bert_config.json'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--config_file', default='config/bert_config.json',
+        '-c', '--config_file', default='config/bert_config-txl.json',
         help='model config file')
 
     parser.add_argument(
