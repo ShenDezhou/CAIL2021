@@ -14,7 +14,7 @@
   "trained_weight":"",
   "hidden_size": 768,
   "num_classes": 31,
-  "dropout": 0.05,
+  "dropout": 0.3,
   "augment": 0,
 
   "lr": 4e-5,

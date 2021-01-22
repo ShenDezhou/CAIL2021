@@ -1231,29 +1231,28 @@ class BERTXLNet(nn.Module):
             param.requires_grad = True
 
         self.drop = nn.Dropout(p=config.dropout)
+        self.bn = nn.BatchNorm1d(config.hidden_size)
         # self.sentence_encoder = SentenceEncoder(args, embed_size)
         # self.sentence_encoder = nn.LSTM(config.hidden_size, config.sent_hidden_size, num_layers=1, batch_first=True,
         #                                 bidirectional=True)
         self.emission = nn.Linear(config.hidden_size, config.num_classes)
         self.crf = CRF(config.num_classes, batch_first=True)
-        self.label_type = nn.Linear(config.hidden_size, 1)
+        self.label_type = nn.Linear(config.hidden_size, config.num_classes)
         self.criterion = nn.MultiLabelSoftMarginLoss(reduction='mean') #label
-        self.num_classes = config.num_classes
 
     def forward(self, input_ids, attention_mask, token_type_ids, char_id, length, label_id=None):
         # use anti-mask for answers-locator
         # mask = char_id.eq(0)
         # chars = self.char_emb(char_id)
         # don't fine tune the bert model.(for bugs in the training steps)
-        rolayers = self.robert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=False)
-        rolayers = rolayers[-1]
-        rolayers = torch.mean(rolayers, dim=2).unsqueeze(dim=2)
-        rolayers = rolayers.repeat(1,1,self.num_classes)
+        _, rolayers = self.robert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
+        rochars = (rolayers[-1] + rolayers[0]) / 2
         # rochars = self.drop(rochars)
 
         _,  layers = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
         chars = (layers[-1] + layers[-2]) / 2
-        chars = self.drop(chars)
+        # chars = self.drop(chars)
+
         # # if self.bichar_emb is not None:
         # #     bichars = self.bichar_emb(bichar_id)
         # #     chars = torch.cat([chars, bichars], dim=-1)
@@ -1264,7 +1263,7 @@ class BERTXLNet(nn.Module):
         # sen_encoded, _ = self.sentence_encoder(chars)
         # sen_encoded = chars
         # sen_encoded = self.drop(sen_encoded)
-
+            
         bio_mask = char_id != 0
         if bio_mask.shape[0]>1:
             for i in range(bio_mask.shape[0]):
@@ -1272,21 +1271,22 @@ class BERTXLNet(nn.Module):
                     bio_mask[i, j] = True
         else:
             bio_mask[0][:length[0]] = True
-        emission = self.emission(chars)
-        emission = emission + rolayers
-        # emission = F.log_softmax(emission, dim=-1)
+
+        emission = torch.mul( self.emission(chars), self.label_type(rochars))
+        emission = F.log_softmax(emission, dim=-1)
+        emission = self.drop(emission)
+        emission = self.bn(emission)
 
         if label_id is not None:
             crf_loss = -self.crf(emission, label_id, mask=bio_mask, reduction='mean')
             # 0-10 共11类
             # sen_encoded, _ = self.sentence_encoder(chars)
-            # label_type = self.label_type(rochars).squeeze(dim=-1)
-            # # label_type = F.log_softmax(label_type, dim=-1)
-            # target_type = (label_id + 2) // 3
-            # # target_type = label_id
-            # type_loss = self.criterion(label_type, target_type)
+            # label_type = F.log_softmax(label_type, dim=-1)
+            #target_type = (label_id + 2) // 3
+            # target_type = label_id
+            #type_loss = self.criterion(label_type, target_type)
 
-            return crf_loss #+ type_loss
+            return crf_loss
         else:
             pred = self.crf.decode(emissions=emission, mask=bio_mask)
             # TODO:check
