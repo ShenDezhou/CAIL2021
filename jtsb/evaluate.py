@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sklearn import metrics
 from classmerge import classy_dic, indic
 
-LABELS = ['1','2']
+LABELS = range(1,131)
 
 
 def calculate_accuracy_f1(
@@ -124,7 +124,8 @@ def evaluatetop5(model, data_loader, device) -> List[str]:
     for i in range(len(outputs)):
         logits = outputs[i]
         answer = torch.topk(logits, 5, dim=-1)[1]#return indices
-        answer_list.append(answer)
+        answer_label = [LABELS[l] for l in answer] #the competetion system start with 1
+        answer_list.append(answer_label)
     return answer_list
 
 if __name__ == '__main__':

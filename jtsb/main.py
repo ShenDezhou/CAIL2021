@@ -37,7 +37,7 @@ MODEL_MAP = {
 }
 
 def main(in_folder='/data/SMP-CAIL2020-test1.csv',
-         out_file='/output/result1.csv',
+         out_file='/output/result1.json',
          model_config='config/bert_config.json'):
     """Test model for given test set on 1 GPU or CPU.
 
@@ -59,7 +59,7 @@ def main(in_folder='/data/SMP-CAIL2020-test1.csv',
                 max_seq_len=config.max_seq_len,
                 model_type=config.model_type, config=config)
 
-    exam_file = preprocess(in_folder)
+    exam_file, filenames = preprocess(in_folder)
     test_set = data.load_file(exam_file, train=False)
     data_loader_test = DataLoader(
         test_set, batch_size=config.batch_size, shuffle=False)
@@ -70,13 +70,14 @@ def main(in_folder='/data/SMP-CAIL2020-test1.csv',
     model.to(device)
     # 3. Evaluate
     answer_list = evaluatetop5(model, data_loader_test, device)
-    print(answer_list)
+    #print(answer_list)
     # 4. Write answers to file
     # id_list = pd.read_csv(in_file)['id'].tolist()
+    pred_result = dict(zip(filenames,answer_list))
     with open(out_file, 'w') as fout:
-        fout.write('answer\n')
-        for top5 in answer_list:
-            fout.write(",".join(top5) + '\n')
+        json.dump(fout,pred_result, ensure_ascii=False)
+
+
 
 
 if __name__ == '__main__':
