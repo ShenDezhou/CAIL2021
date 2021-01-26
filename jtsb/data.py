@@ -222,7 +222,7 @@ class Data:
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
                 if type==0:
-                    label_list.append(row[0]-1)
+                    label_list.append(int(row[0])-1)
                 if type==1:
                     label_list.append(row[0])
             else:  # test
