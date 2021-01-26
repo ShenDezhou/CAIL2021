@@ -21,11 +21,11 @@ import torch
 from torch.utils.data import DataLoader
 
 from data import Data
-from evaluate import evaluate
-from model import BertForClassification, RnnForSentencePairClassification, BertXForClassification, BertYForClassification, LogisticRegression, CharCNN
+from evaluate import evaluate, evaluatetop5
+from model import BertForClassification, RnnForSentencePairClassification, LogisticRegression, CharCNN
 from utils import load_torch_model
 
-from data.reshape_loadimage import preprocess
+from reshape_loadimage import preprocess
 
 LABELS = ['1', '2']
 
@@ -69,13 +69,14 @@ def main(in_folder='/data/SMP-CAIL2020-test1.csv',
         model, model_path=os.path.join(config.model_path, 'model.bin'))
     model.to(device)
     # 3. Evaluate
-    answer_list = evaluate(model, data_loader_test, device)
+    answer_list = evaluatetop5(model, data_loader_test, device)
+    print(answer_list)
     # 4. Write answers to file
     # id_list = pd.read_csv(in_file)['id'].tolist()
     with open(out_file, 'w') as fout:
         fout.write('answer\n')
-        for j in answer_list:
-            fout.write(str(j) + '\n')
+        for top5 in answer_list:
+            fout.write(",".join(top5) + '\n')
 
 
 if __name__ == '__main__':

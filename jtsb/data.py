@@ -32,6 +32,8 @@ Usage:
     data = Data('model/bert/vocab.txt', model_type='bert')
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
+import random
+import re
 from typing import List
 import jieba
 import joblib
@@ -122,6 +124,8 @@ class Data:
         else:  # rnn
             self.tokenizer = Tokenizer(vocab_file)
         self.max_seq_len = max_seq_len
+        self.count_dic = {}
+        self.config = config
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
@@ -181,6 +185,18 @@ class Data:
         print(len(valid_set_valid), 'valid records loaded.')
         return train_set, valid_set_train, valid_set_valid
 
+    def random_mask(self, line, percentage=0.5):
+        result = []
+        parts = re.split("([ _-])", line)
+        for c in parts:
+            x = random.random()
+            if x > percentage:
+                result.append('[MASK]')
+            else:
+                result.append(c)
+        return "".join(result)
+
+
     def _load_file(self, filename, train: bool = True):
         """Load SMP-CAIL2020-Argmine train/test file.
 
@@ -215,10 +231,13 @@ class Data:
             if type==1:
                 sc_tokens = self.tokenizer.convert_ids_to_tokens(list(row[1]))
                 if train:
-                    bc_tokens = self.tokenizer.tokenize(str(row[2]))
+                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2])))
                 else:
-                    bc_tokens = self.tokenizer.tokenize('[MASK]' * len(str(row[2])))
+                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), percentage=0))
             if train:
+                self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
+                if self.count_dic[int(row[0])-1] > self.config.limit:
+                    continue
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
                 if type==0:

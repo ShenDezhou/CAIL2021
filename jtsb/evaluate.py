@@ -102,6 +102,31 @@ def evaluate(model, data_loader, device) -> List[str]:
     return answer_list
 
 
+def evaluatetop5(model, data_loader, device) -> List[str]:
+    """Evaluate model on data loader in device.
+
+    Args:
+        model: model to be evaluate
+        data_loader: torch.utils.data.DataLoader
+        device: cuda or cpu
+
+    Returns:
+        answer list
+    """
+    model.eval()
+    outputs = torch.tensor([], dtype=torch.float).to(device)
+    for batch in tqdm(data_loader, desc='Evaluation', ncols=80):
+        batch = tuple(t.to(device) for t in batch)
+        with torch.no_grad():
+            logits = model(*batch)
+        outputs = torch.cat([outputs, logits[:, :]])
+    answer_list = []
+    for i in range(len(outputs)):
+        logits = outputs[i]
+        answer = torch.topk(logits, 5, dim=-1)[1]#return indices
+        answer_list.append(answer)
+    return answer_list
+
 if __name__ == '__main__':
     acc, f1_score = eval_file(
         'data/train.csv', 'rule_baseline/submission.csv')
