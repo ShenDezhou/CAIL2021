@@ -70,12 +70,12 @@ def main(in_folder='/data/SMP-CAIL2020-test1.csv',
     model.to(device)
     # 3. Evaluate
     answer_list = evaluatetop5(model, data_loader_test, device)
-    #print(answer_list)
+    print(answer_list)
     # 4. Write answers to file
     # id_list = pd.read_csv(in_file)['id'].tolist()
     pred_result = dict(zip(filenames,answer_list))
     with open(out_file, 'w') as fout:
-        json.dump(fout,pred_result, ensure_ascii=False)
+        json.dump(pred_result, fout, ensure_ascii=False)
 
 
 
