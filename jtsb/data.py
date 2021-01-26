@@ -224,7 +224,7 @@ class Data:
                 if type==0:
                     label_list.append(int(row[0])-1)
                 if type==1:
-                    label_list.append(row[0])
+                    label_list.append(int(row[0])-1)
             else:  # test
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
