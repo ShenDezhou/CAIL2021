@@ -101,7 +101,7 @@ class BertL3ForClassification(nn.Module):
         # bert_output[0]: (batch_size, sequence_length, hidden_size)
         # bert_output[1]: (batch_size, hidden_size)
         # take the last three token which is the 85% probability of [MASK] during the training.
-        bert_output = bert_output[:,-3,:] + bert_output[:,-2,:] + bert_output[:,-1,:]
+        bert_output = bert_output[-1][:,-3,:] + bert_output[-1][:,-2,:] + bert_output[-1][:,-1,:]
         pooled_output = bert_output
         pooled_output = self.dropout(pooled_output)
         logits = self.linear(pooled_output).view(batch_size, self.num_classes)
