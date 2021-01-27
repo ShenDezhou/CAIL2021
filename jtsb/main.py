@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 
 from data import Data
 from evaluate import evaluate, evaluatetop5
-from model import BertForClassification, RnnForSentencePairClassification, LogisticRegression, CharCNN
+from model import BertForClassification,BertL3ForClassification, RnnForSentencePairClassification, LogisticRegression, CharCNN
 from utils import load_torch_model
 
 from reshape_loadimage import preprocess, test
@@ -30,7 +30,7 @@ from reshape_loadimage import preprocess, test
 LABELS = ['1', '2']
 
 MODEL_MAP = {
-    'bert': BertForClassification,
+    'bert': BertL3ForClassification,
     'rnn': RnnForSentencePairClassification,
     'lr': LogisticRegression,
     'cnn': CharCNN

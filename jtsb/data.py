@@ -32,7 +32,6 @@ Usage:
     data = Data('model/bert/vocab.txt', model_type='bert')
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
-import hashlib
 import random
 import re
 from typing import List
@@ -189,21 +188,20 @@ class Data:
     # ACC - T1: 88.78846153846153 %
     # ACC - T5: 98.07692307692308 %
 
-    def random_mask(self, line, percentage=0.5, train=True):
+    def random_mask(self, line, percentage=0.85, train=True):
         result = []
         parts = re.split("([ _-])", line)
-        if not train:
-            result.append(hashlib.md5(parts[0].encode()).hexdigest())
+        # if not train:
+        #     result.append(hashlib.md5(parts[0].encode()).hexdigest())
         for c in parts:
             x = random.random()
-            if train:
-                if x > percentage:
-                    result.append('[MASK]')
-                else:
-                    result.append(c)
-            else:
+            if x > percentage:
                 result.append('[MASK]')
-        return "".join(result)
+            else:
+                result.append(c)
+        if not train:
+            result.extend(['[MASK]'] * 3)
+        return "".join(result[:3])
 
 
     def _load_file(self, filename, train: bool = True):
