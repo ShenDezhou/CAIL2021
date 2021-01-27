@@ -32,6 +32,7 @@ Usage:
     data = Data('model/bert/vocab.txt', model_type='bert')
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
+import hashlib
 import random
 import re
 from typing import List
@@ -185,15 +186,23 @@ class Data:
         print(len(valid_set_valid), 'valid records loaded.')
         return train_set, valid_set_train, valid_set_valid
 
-    def random_mask(self, line, percentage=0.5):
+    # ACC - T1: 88.78846153846153 %
+    # ACC - T5: 98.07692307692308 %
+
+    def random_mask(self, line, percentage=0.5, train=True):
         result = []
         parts = re.split("([ _-])", line)
+        if not train:
+            result.append(hashlib.md5(parts[0].encode()).hexdigest())
         for c in parts:
             x = random.random()
-            if x > percentage:
-                result.append('[MASK]')
+            if train:
+                if x > percentage:
+                    result.append('[MASK]')
+                else:
+                    result.append(c)
             else:
-                result.append(c)
+                result.append('[MASK]')
         return "".join(result)
 
 
@@ -233,7 +242,7 @@ class Data:
                 if train:
                     bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2])))
                 else:
-                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), percentage=0))
+                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), train=False))
             if train:
                 self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
                 if self.count_dic[int(row[0])-1] > self.config.limit:

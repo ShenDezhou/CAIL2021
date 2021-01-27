@@ -59,7 +59,8 @@ def main(in_folder='data/test',
                 max_seq_len=config.max_seq_len,
                 model_type=config.model_type, config=config)
 
-    exam_file, filenames = preprocess(in_folder)
+    # for debug
+    exam_file, filenames, labels = test("data/test.data")
     test_set = data.load_file(exam_file, train=False)
     data_loader_test = DataLoader(
         test_set, batch_size=config.batch_size, shuffle=False)
@@ -73,11 +74,22 @@ def main(in_folder='data/test',
     print(answer_list)
     # 4. Write answers to file
     # id_list = pd.read_csv(in_file)['id'].tolist()
-    pred_result = dict(zip(filenames, answer_list))
-
+    # pred_result = dict(zip(filenames, answer_list))
+    # for debug
+    pred_result = []
+    total = len(filenames)
+    correct_top1 = 0
+    correct_top5 = 0
+    for i in range(len(filenames)):
+        pred_result.append({filenames[i]: [labels[i], answer_list[i]]})
+        if int(labels[i]) == answer_list[i][0]:
+            correct_top1 += 1
+        if int(labels[i]) in answer_list[i]:
+            correct_top5 += 1
 
     with open(out_file, 'w') as fout:
         json.dump(pred_result, fout, ensure_ascii=False, indent=4)
+    print('ACC-T1:',correct_top1*100.0/total,"%\nACC-T5", correct_top5*100.0/total,"%")
 
 
 

@@ -62,4 +62,10 @@ def preprocess(FOLDER):
 
     return os.path.join(root, "..", "exam.data"), original_files
 
+
+def test(filename):
+
+    test = joblib.load(filename)
+
+    return filename, test["filenames"], test["labels"]
 # print('FIN')
