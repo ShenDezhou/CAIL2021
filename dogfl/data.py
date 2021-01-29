@@ -45,8 +45,7 @@ from torch.utils.data import TensorDataset
 from transformers import BertTokenizer
 # from pytorch_pretrained_bert import BertTokenizer
 from tqdm import tqdm
-# from classmerge import indic
-
+from struct import unpack
 
 class Tokenizer:
     """Tokenizer for Chinese given vocab.txt.
@@ -129,7 +128,7 @@ class Data:
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
-                  train=True) -> TensorDataset:
+                  train=True, mask=True) -> TensorDataset:
         """Load SMP-CAIL2020-Argmine train file and construct TensorDataset.
 
         Args:
@@ -154,7 +153,7 @@ class Data:
                 torch.utils.data.TensorDataset
                     each record: (s1_ids, s2_ids, s1_length, s2_length)
         """
-        sc_list, bc_list, label_list = self._load_file(file_path, train)
+        sc_list, bc_list, label_list = self._load_file(file_path, train, mask)
         if 'bert' in self.model_type:
             dataset = self._convert_sentence_pair_to_bert_dataset(
                 sc_list, bc_list, label_list)
@@ -174,37 +173,47 @@ class Data:
             all are torch.utils.data.TensorDataset
         """
         print('Loading train records for train...')
-        train_set = self.load_file(train_file, True)
+        train_set = self.load_file(train_file, True, False)
         print(len(train_set), 'training records loaded.')
         # print('Loading train records for valid...')
         # valid_set_train = self.load_file(train_file, True)
         # print(len(valid_set_train), 'train records loaded.')
         valid_set_train = None
         print('Loading valid records...')
-        valid_set_valid = self.load_file(valid_file, True)
+        valid_set_valid = self.load_file(valid_file, True, True)
         print(len(valid_set_valid), 'valid records loaded.')
         return train_set, valid_set_train, valid_set_valid
 
     # ACC - T1: 88.78846153846153 %
     # ACC - T5: 98.07692307692308 %
 
-    def random_mask(self, line, percentage=0.85, train=True):
+    def random_mask(self, line, percentage=0.85, mask=True):
         result = []
-        parts = re.split("([ _-])", line)
-        # if not train:
-        #     result.append(hashlib.md5(parts[0].encode()).hexdigest())
-        for c in parts:
+        if mask:
+            result = ['[MASK]']
+        else:
+            parts = re.split("([ _-])", line)
             x = random.random()
             if x > percentage:
                 result.append('[MASK]')
             else:
-                result.append(c)
-        if not train:
-            result.extend(['[MASK]'] * 3)
-        return "".join(result[:3])
+                result = parts
+        return "".join(result)
+
+    def img2index(self, bits):
+        n = len(bits)
+        channel_n = n//3
+        barray = []
+        for i in range(channel_n):
+            barray.append(bits[i])
+            barray.append(bits[channel_n * 2 + i])
+        barray = unpack('H' * channel_n, bytes(barray))
+        barray = [b % 21128 for b in barray]
+        return bytes(barray)
 
 
-    def _load_file(self, filename, train: bool = True):
+
+    def _load_file(self, filename, train: bool = True, mask: bool = True):
         """Load SMP-CAIL2020-Argmine train/test file.
 
         For train file,
@@ -236,11 +245,8 @@ class Data:
                 sc_tokens = self.tokenizer.tokenize(str(row[1]))
                 bc_tokens = self.tokenizer.tokenize(str(row[2]))
             if type==1:
-                sc_tokens = self.tokenizer.convert_ids_to_tokens(list(row[1]))
-                if train:
-                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2])))
-                else:
-                    bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), train=False))
+                sc_tokens = self.tokenizer.convert_ids_to_tokens(self.img2index(row[1]))
+                bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), mask=mask))
             if train:
                 self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
                 if self.count_dic[int(row[0])-1] > self.config.limit:

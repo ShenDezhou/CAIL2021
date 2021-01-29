@@ -77,7 +77,7 @@ class BertL3ForClassification(nn.Module):
         for param in self.bert.parameters():
             param.requires_grad = True
         self.dropout = nn.Dropout(config.dropout)
-        self.linear = nn.Linear(config.hidden_size, config.num_classes)
+        self.linear = nn.Linear(config.hidden_size*2, config.num_classes)
         self.num_classes = config.num_classes
 
     def forward(self, input_ids, attention_mask, token_type_ids):
@@ -92,7 +92,7 @@ class BertL3ForClassification(nn.Module):
             logits: (batch_size, num_classes)
         """
         batch_size = input_ids.shape[0]
-        _, _, bert_output = self.bert(
+        _, bert_out, bert_output = self.bert(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
@@ -101,8 +101,9 @@ class BertL3ForClassification(nn.Module):
         # bert_output[0]: (batch_size, sequence_length, hidden_size)
         # bert_output[1]: (batch_size, hidden_size)
         # take the last three token which is the 85% probability of [MASK] during the training.
-        bert_output = bert_output[-1][:,-3,:] + bert_output[-1][:,-2,:] + bert_output[-1][:,-1,:]
-        pooled_output = bert_output
+        bert_output = bert_output[-1][:,0,:]
+        # bert_output = self.dropout(bert_output)
+        pooled_output = torch.cat([bert_out,bert_output], dim=-1)
         pooled_output = self.dropout(pooled_output)
         logits = self.linear(pooled_output).view(batch_size, self.num_classes)
         logits = nn.functional.softmax(logits, dim=-1)
