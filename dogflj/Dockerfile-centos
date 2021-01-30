@@ -1,0 +1,24 @@
+FROM nvidia/cuda:10.2-cudnn7-devel-centos7
+USER root
+#ENV DEBIAN_FRONTEND=noninteractive
+#RUN ln -fs /usr/share/zoneinfo/Asia/Beijing /etc/localtime
+
+RUN sed -i 's/mirror.centos.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/yum.repos.d/CentOS-Base.repo
+#RUN yum update -y
+#RUN yum upgrade -y
+#RUN apt-get remove python python-dev python-opencv -y
+RUN yum install python3 python3-devel python3-pip -y
+RUN yum install opencv opencv-devel opencv-python -y
+
+RUN mkdir -p /root/.pip
+#RUN pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+COPY ./requirements.txt /workspace/requirements.txt
+RUN  pip3 install -r /workspace/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+COPY . /workspace
+#RUN pip3 install /workspace/torch-1.5.0-cp36-cp36m-manylinux1_x86_64.whl
+RUN rm -rf /root/.cache/pip/wheels/*
+# Run when the container launches
+WORKDIR /workspace
+CMD ['python3']
+#ENTRYPOINT ['/workspace/one_for_all_inference.py']
