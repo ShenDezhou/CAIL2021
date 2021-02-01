@@ -317,6 +317,14 @@ class RecDataProcess:
         """
         return (_img.astype(np.float32) / 255 - self.config.mean) / self.config.std
 
+    def binnormalize_img(self, _img):
+        """
+        根据配置的均值和标准差进行归一化
+        :param _img:    待归一化的图像
+        :return:    归一化后的图像
+        """
+        return (_img.astype(np.float32) / 2 - self.config.mean) / self.config.std
+
     def width_pad_img(self, _img, _target_width, _pad_value=0):
         """
         将图像进行高度不变，宽度的调整的pad

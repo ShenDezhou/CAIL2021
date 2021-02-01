@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from .RecDataSet import RecDataLoader, RecTextLineDataset, RecAsWholeTextLineDataset, RecLmdbDataset
 from .DetDataSet import JsonDataset
-from .RecCollateFn import RecCollateFn
+from .RecCollateFn import RecCollateFn, UnnormRecCollateFn
 from .DetCollateFN import DetCollectFN
 
 __all__ = ['build_dataloader']

@@ -5,7 +5,7 @@
     "third_party_name": "",
     "checkpoint_save_dir": "model/CNNBERT/",
     "device": "cuda:0",
-    "epochs": 100,
+    "epochs": 10,
     "fine_tune_stage": [
       "backbone",
       "neck",
@@ -31,11 +31,11 @@
     "type": "RecModel",
     "backbone": {
       "type": "ResBertNet",
-      "layers": 18,
-      "bert_model_path": "F:\\4_model\\roberta3_ext"
+      "layers": 512,
+      "bert_model_path": "../roberta3_ext"
     },
     "neck": {
-      "type": "RNN"
+      "type": "None"
     },
     "head": {
       "type": "CTC",
@@ -55,16 +55,16 @@
         "file": "data/train.txt",
         "input_h": 32,
         "mean": 0.5,
-        "std": 0.5,
+        "std": 1.0,
         "augmentation": "False"
       },
       "loader": {
         "type": "DataLoader",
-        "batch_size": 32,
+        "batch_size": 16,
         "shuffle": "True",
         "num_workers": 1,
         "collate_fn": {
-          "type": "RecCollateFn",
+          "type": "UnnormRecCollateFn",
           "img_w": 32
         }
       }
@@ -75,16 +75,16 @@
         "file": "data/val.txt",
         "input_h": 32,
         "mean": 0.5,
-        "std": 0.5,
+        "std": 1.0,
         "augmentation": "False"
       },
       "loader": {
         "type": "RecDataLoader",
-        "batch_size": 4,
+        "batch_size": 16,
         "shuffle": "False",
         "num_workers": 1,
         "collate_fn": {
-          "type": "RecCollateFn",
+          "type": "UnnormRecCollateFn",
           "img_w": 32
         }
       }

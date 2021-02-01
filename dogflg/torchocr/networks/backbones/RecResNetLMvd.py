@@ -183,72 +183,95 @@ class BottleneckBlock(nn.Module):
 class ResBertNet(nn.Module):
     def __init__(self, in_channels, layers, bert_model_path, **kwargs):
         super().__init__()
-        supported_layers = {
-            18: {'depth': [2, 2, 2, 2], 'block_class': BasicBlock},
-            34: {'depth': [3, 4, 6, 3], 'block_class': BasicBlock},
-            50: {'depth': [3, 4, 6, 3], 'block_class': BottleneckBlock},
-            101: {'depth': [3, 4, 23, 3], 'block_class': BottleneckBlock},
-            152: {'depth': [3, 8, 36, 3], 'block_class': BottleneckBlock},
-            200: {'depth': [3, 12, 48, 3], 'block_class': BottleneckBlock}
-        }
-        assert layers in supported_layers, "supported layers are {} but input layer is {}".format(supported_layers,
-                                                                                                  layers)
-
-        depth = supported_layers[layers]['depth']
-        block_class = supported_layers[layers]['block_class']
-
-        num_filters = [64, 128, 256, 512]
-        self.conv1 = nn.Sequential(
-            ConvBNACT(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, act='relu'),
-            ConvBNACT(in_channels=32, out_channels=32, kernel_size=3, stride=1, act='relu', padding=1),
-            ConvBNACT(in_channels=32, out_channels=64, kernel_size=3, stride=1, act='relu', padding=1)
-        )
-
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-        self.stages = nn.ModuleList()
-        in_ch = 64
-        for block_index in range(len(depth)):
-            block_list = []
-            for i in range(depth[block_index]):
-                if layers >= 50:
-                    if layers in [101, 152, 200] and block_index == 2:
-                        if i == 0:
-                            conv_name = "res" + str(block_index + 2) + "a"
-                        else:
-                            conv_name = "res" + str(block_index + 2) + "b" + str(i)
-                    else:
-                        conv_name = "res" + str(block_index + 2) + chr(97 + i)
-                else:
-                    conv_name = f'res{str(block_index + 2)}{chr(97 + i)}'
-                if i == 0 and block_index != 0:
-                    stride = (2, 1)
-                else:
-                    stride = (1, 1)
-                block_list.append(block_class(in_channels=in_ch, out_channels=num_filters[block_index],
-                                              stride=stride,
-                                              if_first=block_index == i == 0, name=conv_name))
-                in_ch = block_list[-1].output_channels
-            self.stages.append(nn.Sequential(*block_list))
-        self.out_channels = in_ch
-        self.out = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        # supported_layers = {
+        #     18: {'depth': [2, 2, 2, 2], 'block_class': BasicBlock},
+        #     34: {'depth': [3, 4, 6, 3], 'block_class': BasicBlock},
+        #     50: {'depth': [3, 4, 6, 3], 'block_class': BottleneckBlock},
+        #     101: {'depth': [3, 4, 23, 3], 'block_class': BottleneckBlock},
+        #     152: {'depth': [3, 8, 36, 3], 'block_class': BottleneckBlock},
+        #     200: {'depth': [3, 12, 48, 3], 'block_class': BottleneckBlock}
+        # }
+        # assert layers in supported_layers, "supported layers are {} but input layer is {}".format(supported_layers,
+        #                                                                                           layers)
+        #
+        # depth = supported_layers[layers]['depth']
+        # block_class = supported_layers[layers]['block_class']
+        #
+        # num_filters = [64, 128, 256, 512]
+        # self.conv1 = nn.Sequential(
+        #     ConvBNACT(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding=1, act='relu'),
+        #     ConvBNACT(in_channels=32, out_channels=32, kernel_size=3, stride=1, act='relu', padding=1),
+        #     ConvBNACT(in_channels=32, out_channels=64, kernel_size=3, stride=1, act='relu', padding=1)
+        # )
+        #
+        # self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        #
+        # self.stages = nn.ModuleList()
+        # in_ch = 64
+        # for block_index in range(len(depth)):
+        #     block_list = []
+        #     for i in range(depth[block_index]):
+        #         if layers >= 50:
+        #             if layers in [101, 152, 200] and block_index == 2:
+        #                 if i == 0:
+        #                     conv_name = "res" + str(block_index + 2) + "a"
+        #                 else:
+        #                     conv_name = "res" + str(block_index + 2) + "b" + str(i)
+        #             else:
+        #                 conv_name = "res" + str(block_index + 2) + chr(97 + i)
+        #         else:
+        #             conv_name = f'res{str(block_index + 2)}{chr(97 + i)}'
+        #         if i == 0 and block_index != 0:
+        #             stride = (2, 1)
+        #         else:
+        #             stride = (1, 1)
+        #         block_list.append(block_class(in_channels=in_ch, out_channels=num_filters[block_index],
+        #                                       stride=stride,
+        #                                       if_first=block_index == i == 0, name=conv_name))
+        #         in_ch = block_list[-1].output_channels
+        #     self.stages.append(nn.Sequential(*block_list))
+        # self.out_channels = in_ch
+        # self.out = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.max_seq_len = layers
+        self.input_mask = [1] * self.max_seq_len
+        self.segment_ids = [0] * self.max_seq_len
         self.bert = BertModel.from_pretrained(bert_model_path)
+        for param in self.bert.parameters():
+            param.requires_grad = True
+        self.out_channels = 1
 
-    def load_3rd_state_dict(self, _3rd_name, _state):
-        if _3rd_name == 'paddle':
-            for m_conv_index, m_conv in enumerate(self.conv1, 1):
-                m_conv.load_3rd_state_dict(_3rd_name, _state, f'conv1_{m_conv_index}')
-            for m_stage in self.stages:
-                for m_block in m_stage:
-                    m_block.load_3rd_state_dict(_3rd_name, _state)
-        else:
-            pass
+        # def load_3rd_state_dict(self, _3rd_name, _state):
+    #     if _3rd_name == 'paddle':
+    #         for m_conv_index, m_conv in enumerate(self.conv1, 1):
+    #             m_conv.load_3rd_state_dict(_3rd_name, _state, f'conv1_{m_conv_index}')
+    #         for m_stage in self.stages:
+    #             for m_block in m_stage:
+    #                 m_block.load_3rd_state_dict(_3rd_name, _state)
+    #     else:
+    #         pass
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.pool1(x)
-        for stage in self.stages:
-            x = stage(x)
-        x = self.out(x)
-        x = self.bert(x)
+        # x = self.conv1(x)
+        # x = self.pool1(x)
+        # for stage in self.stages:
+        #     x = stage(x)
+        # x = self.out(x)
+        batch_size = x.shape[0]
+        channel = x.shape[1]
+        pixels = x.shape[2] * x.shape[3]
+        offset = (pixels - self.max_seq_len) // 2
+        device = x.device
+        x = x.view(batch_size, channel, -1).long()
+        x1 = torch.mul(x[:, 0, :self.max_seq_len], 64)
+        x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
+        x3 = x[:, 2, -self.max_seq_len:]
+        x = x1+x2+x3
+        input_mask = torch.LongTensor([self.input_mask] * batch_size).to(device)
+        segment_ids = torch.LongTensor([self.segment_ids] * batch_size).to(device)
+
+        #_, x1 = self.bert(x1, input_mask, segment_ids)
+        _, x = self.bert(x, input_mask, segment_ids)
+        #_, x3 = self.bert(x3, input_mask, segment_ids)
+        #x = torch.cat([x1,x2,x3], dim=-1)
+        x = x.view(batch_size, self.out_channels, 3*16, 16)
         return x
