@@ -105,3 +105,34 @@ class CTCAsWholeLabelConverter(object):
                         conf.append(prob[i])
                 result_list.append((''.join(result), conf))
         return result_list
+
+
+    def decode_top5(self, preds, raw=False):
+        """ convert text-index into text-label. """
+        preds_idx = torch.topk(preds, 5, dim=-1)[1]#preds.argmax(axis=2)
+        preds_prob =torch.topk(preds, 5, dim=-1)[0]# preds.max(axis=2)
+        result_list = []
+        for word, prob in zip(preds_idx, preds_prob):
+            if raw:
+                # result_list.append((''.join([self.character[int(i)] for i in word]), prob))
+                result = []
+                conf = []
+                for i, index in enumerate(word):
+                    result.append([self.character[int(item)+1] for item in index])
+                    conf.append(prob[i].tolist())
+                result_list.append((result, conf))
+            else:
+                result = []
+                conf = []
+                for i, index in enumerate(word):
+                    if word[i][0] != 0 and (not (i > 0 and word[i - 1][0] == word[i][0])):
+                        tokens = []
+                        for item in index:
+                            if int(item):
+                                tokens.append(self.character[int(item)])
+                            else:
+                                tokens.append(0)
+                        result.append(tokens)
+                        conf.append(prob[i].tolist())
+                result_list.append(result)
+        return result_list
