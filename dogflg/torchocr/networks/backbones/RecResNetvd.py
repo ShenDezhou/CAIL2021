@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
+import os
 from collections import OrderedDict
 import torch
 from torch import nn
@@ -180,7 +182,7 @@ class BottleneckBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, in_channels, layers, **kwargs):
+    def __init__(self, in_channels, layers, pretrained=True, **kwargs):
         super().__init__()
         supported_layers = {
             18: {'depth': [2, 2, 2, 2], 'block_class': BasicBlock},
@@ -229,6 +231,16 @@ class ResNet(nn.Module):
                                               if_first=block_index == i == 0, name=conv_name))
                 in_ch = block_list[-1].output_channels
             self.stages.append(nn.Sequential(*block_list))
+
+        if pretrained:
+            ckpt_path = f'./weights/resnet{layers}_vd.pth'
+            logger = logging.getLogger('torchocr')
+            if os.path.exists(ckpt_path):
+                logger.info('load imagenet weights')
+                self.load_state_dict(torch.load(ckpt_path))
+            else:
+                logger.info(f'{ckpt_path} not exists')
+
         self.out_channels = in_ch
         self.out = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 

@@ -1,9 +1,9 @@
 {
-  "exp_name": "CNNBERT",
+  "exp_name": "CNNRES152",
   "train_options": {
     "resume_from": "",
     "third_party_name": "",
-    "checkpoint_save_dir": "model/CNNBERT/",
+    "checkpoint_save_dir": "model/CNNRES152/",
     "device": "cuda:0",
     "epochs": 100,
     "fine_tune_stage": [
@@ -30,12 +30,11 @@
   "model": {
     "type": "RecModel",
     "backbone": {
-      "type": "ResBertNet",
-      "layers": 18,
-      "bert_model_path": "F:\\4_model\\roberta3_ext"
+      "type": "ResNet",
+      "layers": 152
     },
     "neck": {
-      "type": "RNN"
+      "type": "None"
     },
     "head": {
       "type": "CTC",
