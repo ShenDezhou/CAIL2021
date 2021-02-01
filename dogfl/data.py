@@ -187,29 +187,28 @@ class Data:
     # ACC - T1: 88.78846153846153 %
     # ACC - T5: 98.07692307692308 %
 
-    def random_mask(self, line, percentage=0.85, mask=True):
-        result = []
+    def random_mask(self, line, percentage=0.10, mask=True):
+        newline = ""
         if mask:
-            result = ['[MASK]']
-        else:
-            parts = re.split("([ _-])", line)
+            return '#' * len(line)
+        for c in line:
             x = random.random()
             if x > percentage:
-                result.append('[MASK]')
+                newline += '#'
             else:
-                result = parts
-        return "".join(result)
+                newline += c
+        return newline
 
     def img2index(self, bits):
-        n = len(bits)
-        channel_n = n//3
-        barray = []
-        for i in range(channel_n):
-            barray.append(bits[i])
-            barray.append(bits[channel_n * 2 + i])
-        barray = unpack('H' * channel_n, bytes(barray))
-        barray = [b % 21128 for b in barray]
-        return bytes(barray)
+        bits = torch.LongTensor(bits)
+        bits = bits.view(32,32,3)
+        bits = bits.transpose([2, 0, 1])
+        x = bits.view(3, -1)
+        x1 = torch.mul(x[0, :self.max_seq_len], 128)
+        # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
+        x3 = x[2, -self.max_seq_len:]
+        x = x1 + x3
+        return x.tolist()
 
 
 
