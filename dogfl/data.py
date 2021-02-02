@@ -123,7 +123,7 @@ class Data:
         else:  # rnn
             self.tokenizer = Tokenizer(vocab_file)
         self.max_seq_len = max_seq_len
-        self.count_dic = {}
+        # self.count_dic = {}
         self.config = config
 
     def load_file(self,
@@ -202,7 +202,7 @@ class Data:
     def img2index(self, bits):
         bits = torch.LongTensor(bits)
         bits = bits.view(32,32,3)
-        bits = bits.transpose([2, 0, 1])
+        bits = bits.permute(2, 0, 1)
         x = bits.view(3, -1)
         x1 = torch.mul(x[0, :self.max_seq_len], 128)
         # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
@@ -247,9 +247,9 @@ class Data:
                 sc_tokens = self.tokenizer.convert_ids_to_tokens(self.img2index(row[1]))
                 bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), mask=mask))
             if train:
-                self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
-                if self.count_dic[int(row[0])-1] > self.config.limit:
-                    continue
+                # self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
+                # if self.count_dic[int(row[0])-1] > self.config.limit:
+                #     continue
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
                 if type==0:
