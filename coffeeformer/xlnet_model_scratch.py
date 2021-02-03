@@ -1,4 +1,4 @@
-
+#for tpu device, use this when training `--tpu_num_cores 8`
 def main():
     from transformers import XLNetConfig
 
@@ -43,7 +43,7 @@ def main():
         output_dir="./model/xlnet_v1",
         overwrite_output_dir=True,
         num_train_epochs=5,
-        per_gpu_train_batch_size=16,
+        per_gpu_train_batch_size=32,
         save_steps=10_000,
         save_total_limit=2,
     )
