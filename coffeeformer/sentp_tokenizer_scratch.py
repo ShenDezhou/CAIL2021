@@ -3,7 +3,7 @@ from pathlib import Path
 from sentencepiece import SentencePieceTrainer
 
 
-paths = [str(x) for x in Path("./data/").glob("**/*eval.csv")]
+paths = [str(x) for x in Path("./data/").glob("**/*train.csv")]
 
 
 # Customize training

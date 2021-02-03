@@ -2,7 +2,7 @@ from transformers import RobertaConfig
 
 config = RobertaConfig(
     vocab_size=21_128,
-    max_position_embeddings=514,
+    max_position_embeddings=512,
     num_attention_heads=12,
     num_hidden_layers=12,
     type_vocab_size=1,
