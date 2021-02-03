@@ -17,6 +17,7 @@ from transformers import RobertaForMaskedLM
 model = RobertaForMaskedLM(config=config)
 
 print(model.num_parameters())
+model.resize_token_embeddings(len(tokenizer))
 
 from transformers import LineByLineTextDataset
 
