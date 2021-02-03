@@ -17,7 +17,6 @@ tokenizer.train(files=paths, vocab_size=21_128, min_frequency=0, special_tokens=
     "<mask>",
 ])
 
-tokenizer.post_train()
 
 # Save files to disk
 tokenizer.save_model("model/bbpe", "")

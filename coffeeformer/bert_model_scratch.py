@@ -4,7 +4,7 @@ config = RobertaConfig(
     vocab_size=21_128,
     max_position_embeddings=514,
     num_attention_heads=12,
-    num_hidden_layers=6,
+    num_hidden_layers=12,
     type_vocab_size=1,
 )
 
@@ -38,7 +38,7 @@ training_args = TrainingArguments(
     output_dir="./model/bert_v1",
     overwrite_output_dir=True,
     num_train_epochs=1,
-    per_gpu_train_batch_size=64,
+    per_gpu_train_batch_size=32,
     save_steps=10_000,
     save_total_limit=2,
 )
