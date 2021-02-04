@@ -25,13 +25,14 @@ from evaluate import evaluate, evaluatetop5
 from model import BertForClassification, BertL3ForClassification, RnnForSentencePairClassification, LogisticRegression, CharCNN
 from utils import load_torch_model
 
-from reshape_loadimage import preprocess, test
+from reshape_loadimage import preprocess, read_joblib
 #ACC-T1: 92.07692307692308 %
 #ACC-T5 96.0576923076923 %
 LABELS = ['1', '2']
 
 MODEL_MAP = {
     'bert': BertL3ForClassification,
+    'bertxl': BertL3ForClassification,
     'rnn': RnnForSentencePairClassification,
     'lr': LogisticRegression,
     'cnn': CharCNN
@@ -39,7 +40,8 @@ MODEL_MAP = {
 
 def main(in_folder='data/test',
          out_file='output/result.json',
-         model_config='config/roberta3_bert_config.json'):
+         model_config='config/roberta3_bert_config.json',
+         isValidOrTest=True):
     """Test model for given test set on 1 GPU or CPU.
 
     Args:
@@ -60,8 +62,14 @@ def main(in_folder='data/test',
                 max_seq_len=config.max_seq_len,
                 model_type=config.model_type, config=config)
 
+    if isValidOrTest:
+        imagebits, filenames, labels = read_joblib("data/test.data")
+        exam_file = "data/test.data"
+    else:
+        filenames = preprocess(in_folder,"data/exam.data")
+        exam_file = "data/exam.data"
     # for debug
-    exam_file, filenames, labels = test("data/test.data")
+    # exam_file, filenames, labels = test("data/test.data")
     test_set = data.load_file(exam_file, train=False)
     data_loader_test = DataLoader(
         test_set, batch_size=config.batch_size, shuffle=False)
@@ -78,19 +86,23 @@ def main(in_folder='data/test',
     # pred_result = dict(zip(filenames, answer_list))
     # for debug
     pred_result = []
-    total = len(filenames)
-    correct_top1 = 0
-    correct_top5 = 0
     for i in range(len(filenames)):
         pred_result.append({filenames[i]: [labels[i], answer_list[i]]})
-        if int(labels[i]) == answer_list[i][0]:
-            correct_top1 += 1
-        if int(labels[i]) in answer_list[i]:
-            correct_top5 += 1
 
-    with open(out_file, 'w') as fout:
-        json.dump(pred_result, fout, ensure_ascii=False, indent=4)
-    print('ACC-T1:',correct_top1*100.0/total,"%\nACC-T5", correct_top5*100.0/total,"%")
+    if isValidOrTest:
+        total = len(filenames)
+        correct_top1 = 0
+        correct_top5 = 0
+        for i in range(len(filenames)):
+            if int(labels[i]) == answer_list[i][0]:
+                correct_top1 += 1
+            if int(labels[i]) in answer_list[i]:
+                correct_top5 += 1
+        print('ACC-T1:', correct_top1 * 100.0 / total, "%\nACC-T5", correct_top5 * 100.0 / total, "%")
+    else:
+        with open(out_file, 'w') as fout:
+            json.dump(pred_result, fout, ensure_ascii=False, indent=4)
+
 
 
 

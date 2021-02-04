@@ -8,6 +8,7 @@ import torch
 
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, PackedSequence
+from transformers import AutoModel
 from transformers.modeling_bert import BertModel
 import torch.nn.functional as F
 
@@ -25,7 +26,11 @@ class BertForClassification(nn.Module):
                 config.dropout: float between 0 and 1
         """
         super().__init__()
-        self.bert = BertModel.from_pretrained(config.bert_model_path)
+        if 'bert' == config.model_type:
+            self.bert = BertModel.from_pretrained(config.bert_model_path)
+        else:
+            self.bert = AutoModel.from_pretrained(config.bert_model_path)
+        self.model_type = config.model_type
         for param in self.bert.parameters():
             param.requires_grad = True
         self.dropout = nn.Dropout(config.dropout)
@@ -44,15 +49,21 @@ class BertForClassification(nn.Module):
             logits: (batch_size, num_classes)
         """
         batch_size = input_ids.shape[0]
-        bert_output = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            # encoder_hidden_states=False
-        )
+        if 'bert' == self.model_type:
+            bert_output = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                # encoder_hidden_states=False
+            )
+            pooled_output = bert_output[1]
+        else:
+            hiddens = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                            output_hidden_states=True)[2]
+            pooled_output = hiddens
+
         # bert_output[0]: (batch_size, sequence_length, hidden_size)
         # bert_output[1]: (batch_size, hidden_size)
-        pooled_output = bert_output[1]
         pooled_output = self.dropout(pooled_output)
         logits = self.linear(pooled_output).view(batch_size, self.num_classes)
         logits = nn.functional.softmax(logits, dim=-1)
@@ -73,11 +84,15 @@ class BertL3ForClassification(nn.Module):
                 config.dropout: float between 0 and 1
         """
         super().__init__()
-        self.bert = BertModel.from_pretrained(config.bert_model_path)
+        if 'bert' == config.model_type:
+            self.bert = BertModel.from_pretrained(config.bert_model_path)
+        else:
+            self.bert = AutoModel.from_pretrained(config.bert_model_path)
+        self.model_type = config.model_type
         for param in self.bert.parameters():
             param.requires_grad = True
         self.dropout = nn.Dropout(config.dropout)
-        self.linear = nn.Linear(config.hidden_size*2, config.num_classes)
+        self.linear = nn.Linear(config.hidden_size, config.num_classes)
         self.num_classes = config.num_classes
 
     def forward(self, input_ids, attention_mask, token_type_ids):
@@ -92,18 +107,25 @@ class BertL3ForClassification(nn.Module):
             logits: (batch_size, num_classes)
         """
         batch_size = input_ids.shape[0]
-        _, bert_out, bert_output = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            output_hidden_states=True
-        )
+
+        if 'bert' == self.model_type:
+            _, bert_out, bert_output = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                output_hidden_states=True
+            )
+        else:
+            _, bert_out, bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                            output_hidden_states=True)
+
+        pooled_output = bert_output
         # bert_output[0]: (batch_size, sequence_length, hidden_size)
         # bert_output[1]: (batch_size, hidden_size)
         # take the last three token which is the 85% probability of [MASK] during the training.
-        bert_output = bert_output[-1][:,0,:]
+        # bert_output = bert_output[-1][:,0,:]
         # bert_output = self.dropout(bert_output)
-        pooled_output = torch.cat([bert_out,bert_output], dim=-1)
+        # pooled_output = torch.cat([bert_out,bert_output], dim=-1)
         pooled_output = self.dropout(pooled_output)
         logits = self.linear(pooled_output).view(batch_size, self.num_classes)
         logits = nn.functional.softmax(logits, dim=-1)

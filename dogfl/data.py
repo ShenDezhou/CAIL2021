@@ -34,6 +34,7 @@ Usage:
 """
 import random
 import re
+import unicodedata
 from typing import List
 import jieba
 import joblib
@@ -42,7 +43,7 @@ import torch
 import pandas as pd
 
 from torch.utils.data import TensorDataset
-from transformers import BertTokenizer
+from transformers import BertTokenizer, AutoTokenizer
 # from pytorch_pretrained_bert import BertTokenizer
 from tqdm import tqdm
 from struct import unpack
@@ -118,8 +119,10 @@ class Data:
                 Otherwise, use Tokenizer as tokenizer
         """
         self.model_type = model_type
-        if 'bert' in self.model_type:
+        if 'bert' == self.model_type:
             self.tokenizer = BertTokenizer.from_pretrained(config.bert_model_path)#BertTokenizer(vocab_file)
+        elif 'bertxl' == self.model_type:
+            self.tokenizer = AutoTokenizer.from_pretrained(config.bert_model_path)#BertTokenizer(vocab_file)
         else:  # rnn
             self.tokenizer = Tokenizer(vocab_file)
         self.max_seq_len = max_seq_len
@@ -154,8 +157,11 @@ class Data:
                     each record: (s1_ids, s2_ids, s1_length, s2_length)
         """
         sc_list, bc_list, label_list = self._load_file(file_path, train, mask)
-        if 'bert' in self.model_type:
+        if 'bert' == self.model_type:
             dataset = self._convert_sentence_pair_to_bert_dataset(
+                sc_list, bc_list, label_list)
+        elif 'bertxl' == self.model_type:
+            dataset = self._convert_sentence_pair_to_bertxl_dataset(
                 sc_list, bc_list, label_list)
         else:  # rnn
             dataset = self._convert_sentence_pair_to_rnn_dataset(
@@ -188,27 +194,31 @@ class Data:
     # ACC - T5: 98.07692307692308 %
 
     def random_mask(self, line, percentage=0.10, mask=True):
-        newline = ""
         if mask:
-            return '#' * len(line)
-        for c in line:
-            x = random.random()
-            if x > percentage:
-                newline += '#'
-            else:
-                newline += c
-        return newline
+            return '[CLS]'
+        type = line.split('_')[0]
+        return type + '[CLS]'
+
+    def remove_control_characters(self, s):
+        return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
     def img2index(self, bits):
-        bits = torch.LongTensor(bits)
+        # bits = torch.LongTensor(bits)
         bits = bits.view(32,32,3)
         bits = bits.permute(2, 0, 1)
-        x = bits.view(3, -1)
-        x1 = torch.mul(x[0, :self.max_seq_len], 128)
-        # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
-        x3 = x[2, -self.max_seq_len:]
-        x = x1 + x3
-        return x.tolist()
+        # x = bits.view(3, -1)
+        #
+        # x1 = torch.mul(x[0, :self.max_seq_len], 128)
+        # # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
+        # x3 = x[2, -self.max_seq_len:]
+        # x = x1 + x3
+        textstr = ""
+        for i in range(3):
+            # img_size = len(bits[i].tostring())
+            img = bits[i].tostring().decode(encoding="utf-8", errors="ignore")
+            # actrual_size = len(img.encode(encoding='utf-8'))
+            textstr += self.remove_control_characters(img).strip()
+        return textstr
 
 
 
@@ -244,7 +254,7 @@ class Data:
                 sc_tokens = self.tokenizer.tokenize(str(row[1]))
                 bc_tokens = self.tokenizer.tokenize(str(row[2]))
             if type==1:
-                sc_tokens = self.tokenizer.convert_ids_to_tokens(self.img2index(row[1]))
+                sc_tokens = self.tokenizer.tokenize(self.img2index(row[1]))
                 bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), mask=mask))
             if train:
                 # self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
@@ -284,6 +294,53 @@ class Data:
             tokens = ['[CLS]'] + s1_list[i] + ['[SEP]']
             segment_ids = [0] * len(tokens)
             tokens += s2_list[i] + ['[SEP]']
+            segment_ids += [1] * (len(s2_list[i]) + 1)
+            if len(tokens) > 512:
+                tokens = tokens[:256] + tokens[-256:]
+                assert len(tokens) == 512
+                segment_ids = segment_ids[:256] + segment_ids[-256:]
+            input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            input_mask = [1] * len(input_ids)
+            tokens_len = len(input_ids)
+            input_ids += [0] * (512 - tokens_len)
+            segment_ids += [0] * (512 - tokens_len)
+            input_mask += [0] * (512 - tokens_len)
+            all_input_ids.append(input_ids)
+            all_input_mask.append(input_mask)
+            all_segment_ids.append(segment_ids)
+        all_input_ids = torch.tensor(all_input_ids, dtype=torch.long)
+        all_input_mask = torch.tensor(all_input_mask, dtype=torch.long)
+        all_segment_ids = torch.tensor(all_segment_ids, dtype=torch.long)
+        if label_list:  # train
+            all_label_ids = torch.tensor(label_list, dtype=torch.long)
+            return TensorDataset(
+                all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        # test
+        return TensorDataset(
+            all_input_ids, all_input_mask, all_segment_ids)
+
+    def _convert_sentence_pair_to_bertxl_dataset(
+            self, s1_list, s2_list, label_list=None):
+        """Convert sentence pairs to dataset for BERT model.
+
+        Args:
+            sc_list, bc_list: List[List[str]], list of word tokens list
+            label_list: train: List[int], list of labels
+                        test: []
+
+        Returns:
+            Train:
+                torch.utils.data.TensorDataset
+                    each record: (input_ids, input_mask, segment_ids, label)
+            Test:
+                torch.utils.data.TensorDataset
+                    each record: (input_ids, input_mask, segment_ids)
+        """
+        all_input_ids, all_input_mask, all_segment_ids = [], [], []
+        for i, _ in tqdm(enumerate(s1_list), ncols=80):
+            tokens = s1_list[i]
+            segment_ids = [0] * len(tokens)
+            tokens += s2_list[i]
             segment_ids += [1] * (len(s2_list[i]) + 1)
             if len(tokens) > 512:
                 tokens = tokens[:256] + tokens[-256:]
