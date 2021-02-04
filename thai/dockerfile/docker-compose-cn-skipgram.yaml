@@ -1,0 +1,7 @@
+services:
+  web:
+    image: wordrepresentation:1.0
+    network_mode: "host"
+    volumes:
+      - /mnt/data/wordrep/model/:/workspace/model/
+    command: python3 torch_server.py -p 58087
