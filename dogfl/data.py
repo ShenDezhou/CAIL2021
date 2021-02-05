@@ -193,32 +193,26 @@ class Data:
     # ACC - T1: 88.78846153846153 %
     # ACC - T5: 98.07692307692308 %
 
-    def random_mask(self, line, percentage=0.10, mask=True):
+    def random_mask(self, line, mask=True):
         if mask:
-            return '[CLS]'
+            return '<mask>'
         type = line.split('_')[0]
-        return type + '[CLS]'
+        return type
 
     def remove_control_characters(self, s):
         return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
     def img2index(self, bits):
-        # bits = torch.LongTensor(bits)
         bits = bits.view(32,32,3)
         bits = bits.permute(2, 0, 1)
-        # x = bits.view(3, -1)
-        #
-        # x1 = torch.mul(x[0, :self.max_seq_len], 128)
-        # # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
-        # x3 = x[2, -self.max_seq_len:]
-        # x = x1 + x3
-        textstr = ""
+
+        unicodestr = ""
         for i in range(3):
             # img_size = len(bits[i].tostring())
             img = bits[i].tostring().decode(encoding="utf-8", errors="ignore")
             # actrual_size = len(img.encode(encoding='utf-8'))
-            textstr += self.remove_control_characters(img).strip()
-        return textstr
+            unicodestr += self.remove_control_characters(img).strip()
+        return unicodestr
 
 
 
