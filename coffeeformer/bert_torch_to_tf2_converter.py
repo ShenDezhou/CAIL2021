@@ -8,8 +8,7 @@ import argparse
 import torch
 import numpy as np
 import tensorflow as tf
-from transformers import XLNetLMHeadModel, TFXLNetLMHeadModel
-
+from transformers import BertForMaskedLM, TFBertForMaskedLM
 
 
 
@@ -34,23 +33,9 @@ def main(raw_args=None):
                         help="Directory in which to save tensorflow model")
     args = parser.parse_args(raw_args)
 
-    # model = XLNetLMHeadModel.from_pretrained(
-    #     pretrained_model_name_or_path=args.model_name,
-    #     state_dict=torch.load(args.pytorch_model_path),
-    #     cache_dir=args.cache_dir
-    # )
-    # model = XLNetLMHeadModel.from_pretrained(
-    #     pretrained_model_name_or_path=args.cache_dir
-    # )
-    #
-    # convert_pytorch_checkpoint_to_tf(
-    #     model=model,
-    #     ckpt_dir=args.tf_cache_dir,
-    #     model_name=args.model_name
-    # )
 
     # Load the PyTorch model in TensorFlow
-    tf_model = TFXLNetLMHeadModel.from_pretrained(args.cache_dir, from_pt=True)
+    tf_model = TFBertForMaskedLM.from_pretrained(args.cache_dir, from_pt=True)
 
     # Save the TensorFlow model
     tf_model.save_pretrained(args.tf_cache_dir)
