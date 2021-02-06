@@ -46,6 +46,7 @@ def main():
         per_gpu_train_batch_size=32,
         save_steps=10_000,
         save_total_limit=2,
+        tpu_num_cores=8,
     )
 
     trainer = Trainer(
