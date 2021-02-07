@@ -1,20 +1,20 @@
-from transformers import BertConfig
+from transformers import RobertaConfig
 
-config = BertConfig(
+config = RobertaConfig(
     vocab_size=21_128,
     max_position_embeddings=512,
     num_attention_heads=12,
-    num_hidden_layers=6,
-    type_vocab_size=2,
+    num_hidden_layers=12,
+    type_vocab_size=1,
 )
 
-from transformers import BertTokenizerFast
+from transformers import RobertaTokenizerFast
 
-tokenizer = BertTokenizerFast.from_pretrained("./model/wpe", max_len=512)
+tokenizer = RobertaTokenizerFast.from_pretrained("./model/bbpe", max_len=512)
 
-from transformers import BertForMaskedLM
+from transformers import RobertaForMaskedLM
 
-model = BertForMaskedLM(config=config)
+model = RobertaForMaskedLM(config=config)
 
 print(model.num_parameters())
 model.resize_token_embeddings(len(tokenizer))
@@ -23,7 +23,7 @@ from transformers import LineByLineTextDataset
 
 dataset = LineByLineTextDataset(
     tokenizer=tokenizer,
-    file_path="./data/data_train.csv",
+    file_path="./data/data_eval.csv",
     block_size=128,
 )
 
@@ -38,8 +38,8 @@ from transformers import Trainer, TrainingArguments
 training_args = TrainingArguments(
     output_dir="./model/bert_v1",
     overwrite_output_dir=True,
-    num_train_epochs=5,
-    per_gpu_train_batch_size=64,
+    num_train_epochs=1,
+    per_gpu_train_batch_size=32,
     save_steps=10_000,
     save_total_limit=2,
 )
