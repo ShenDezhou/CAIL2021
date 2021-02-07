@@ -1,118 +1,212 @@
-# Introduction
+# Traffic Sign Detection
+本项目为2021年第一届“计图”人工智能算法挑战赛-交通标志检测的Baseline。深度学习框架为[Jittor](https://cg.cs.tsinghua.edu.cn/jittor/)。
 
-compare between BERT-LARGE with RoBERTa-3-LARGE-ext model.
+比赛链接如下：
+1. [2021年第一届“计图”人工智能算法挑战赛-交通标志检测](https://www.educoder.net/competitions/index/Jittor-1)
+2. [2021年第一届“计图”人工智能算法挑战赛-狗细分类](https://www.educoder.net/competitions/index/Jittor-2)
 
-## 1.BERT-LARGE model
-```
-[xla:0](100) Loss=1.16723 Rate=0.07 GlobalRate=0.05 Time=Thu Sep 24 07:41:56 2020
-[xla:0](200) Loss=1.43893 Rate=4.44 GlobalRate=0.10 Time=Thu Sep 24 07:42:23 2020
-[xla:0](300) Loss=0.99112 Rate=6.50 GlobalRate=0.14 Time=Thu Sep 24 07:42:49 2020
-[xla:0](400) Loss=0.90796 Rate=6.86 GlobalRate=0.19 Time=Thu Sep 24 07:43:17 2020
-[xla:0](500) Loss=0.97639 Rate=7.10 GlobalRate=0.23 Time=Thu Sep 24 07:43:44 2020
-[xla:0](600) Loss=1.26334 Rate=7.27 GlobalRate=0.28 Time=Thu Sep 24 07:44:12 2020
-[xla:0](700) Loss=0.87083 Rate=7.31 GlobalRate=0.32 Time=Thu Sep 24 07:44:39 2020
-[xla:0](800) Loss=0.75612 Rate=7.25 GlobalRate=0.37 Time=Thu Sep 24 07:45:07 2020
-[xla:0](900) Loss=0.76049 Rate=7.42 GlobalRate=0.41 Time=Thu Sep 24 07:45:33 2020
-[xla:0](1000) Loss=0.74393 Rate=7.29 GlobalRate=0.45 Time=Thu Sep 24 07:46:01 2020
-[xla:0](1100) Loss=0.74535 Rate=7.22 GlobalRate=0.49 Time=Thu Sep 24 07:46:29 2020
-[xla:0](1200) Loss=0.74383 Rate=7.15 GlobalRate=0.53 Time=Thu Sep 24 07:46:57 2020
-[xla:0](1300) Loss=0.74376 Rate=7.31 GlobalRate=0.58 Time=Thu Sep 24 07:47:24 2020
-[xla:0](1400) Loss=0.74370 Rate=7.48 GlobalRate=0.62 Time=Thu Sep 24 07:47:50 2020
-[xla:0](1500) Loss=0.74370 Rate=7.47 GlobalRate=0.66 Time=Thu Sep 24 07:48:17 2020
-[xla:0](1600) Loss=0.74368 Rate=7.39 GlobalRate=0.70 Time=Thu Sep 24 07:48:44 2020
-[xla:0](1700) Loss=0.74367 Rate=7.44 GlobalRate=0.74 Time=Thu Sep 24 07:49:11 2020
-[xla:0](1800) Loss=0.74367 Rate=7.36 GlobalRate=0.77 Time=Thu Sep 24 07:49:38 2020
-[xla:0](1900) Loss=0.74367 Rate=7.45 GlobalRate=0.81 Time=Thu Sep 24 07:50:05 2020
-[xla:0](2000) Loss=0.74367 Rate=7.58 GlobalRate=0.85 Time=Thu Sep 24 07:50:31 2020
-[xla:0](2100) Loss=0.74367 Rate=7.58 GlobalRate=0.89 Time=Thu Sep 24 07:50:57 2020
-Finished training epoch 0
-[xla:0](0) Acc=1.00000 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:51:29 2020
-[xla:0](100) Acc=0.98515 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:52:04 2020
-[xla:0](200) Acc=0.98756 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:52:28 2020
-[xla:0](300) Acc=0.98837 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:52:51 2020
-[xla:0](400) Acc=0.99002 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:53:15 2020
-[xla:0](500) Acc=0.98503 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:53:38 2020
-[xla:0](600) Acc=0.98752 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:54:02 2020
-[xla:0](700) Acc=0.98859 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:54:26 2020
-[xla:0](800) Acc=0.98814 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:54:49 2020
-[xla:0](900) Acc=0.98890 Rate=0.00 GlobalRate=0.00 Time=Thu Sep 24 07:55:13 2020
-[xla:0] Accuracy=98.95%
-Finished test epoch 0, valid=98.95
-('DONE', 98.95)
-saved model.
+### 项目文件
+```shell
+TrafficSignDetection
+├── dataset
+│   ├── augmentation.py # 数据增强方法
+│   ├── data.py # Dataset
+│   └── transforms.py # 图片数据处理
+├── model
+│   ├── faster_rcnn.py 
+│   ├── resnet.py
+│   ├── roi_head.py
+│   └── rpn.py
+├── utils
+│   ├── ap_eval.py
+│   ├── box_ops.py
+│   ├── roi_align.py
+│   └── visualize.py
+├── evaluate.py
+├── train.py
+├── README.md
+└── requirements.txt
 ```
 
+### 数据集
 
-# 2.RoBERTa-3-Large-Ext model
+```shell
+# 下载训练数据集
+wget https://cg.cs.tsinghua.edu.cn/traffic-sign/tt100k_2021.zip
+unzip tt100k_2021.zip
+
+# 下载A榜数据集
+wget -O TT_TEST_A.zip https://cloud.tsinghua.edu.cn/f/14252d9ad07b4d7b86d4/?dl=1
+unzip TT_TEST_A.zip
+
+# 下载Baseline数据增强使用的部分marks
+cd tt100k_2021
+wget https://cg.cs.tsinghua.edu.cn/traffic-sign/re_marks.zip
+unzip re_marks.zip
 ```
-[xla:0](100) Loss=1.36708 Rate=0.29 GlobalRate=0.05 Time=Fri Sep 25 07:46:23 2020
-[xla:0](200) Loss=1.38933 Rate=29.32 GlobalRate=0.10 Time=Fri Sep 25 07:46:27 2020
-[xla:0](300) Loss=0.90580 Rate=41.29 GlobalRate=0.15 Time=Fri Sep 25 07:46:31 2020
-[xla:0](400) Loss=0.90670 Rate=46.25 GlobalRate=0.20 Time=Fri Sep 25 07:46:36 2020
-[xla:0](500) Loss=1.20364 Rate=47.92 GlobalRate=0.24 Time=Fri Sep 25 07:46:40 2020
-[xla:0](600) Loss=1.11587 Rate=48.59 GlobalRate=0.29 Time=Fri Sep 25 07:46:44 2020
-[xla:0](700) Loss=1.03590 Rate=48.93 GlobalRate=0.34 Time=Fri Sep 25 07:46:48 2020
-[xla:0](800) Loss=0.77885 Rate=48.77 GlobalRate=0.39 Time=Fri Sep 25 07:46:52 2020
-[xla:0](900) Loss=0.82693 Rate=49.07 GlobalRate=0.44 Time=Fri Sep 25 07:46:56 2020
-[xla:0](1000) Loss=0.74579 Rate=49.28 GlobalRate=0.49 Time=Fri Sep 25 07:47:00 2020
-[xla:0](1100) Loss=0.75016 Rate=49.32 GlobalRate=0.53 Time=Fri Sep 25 07:47:04 2020
-[xla:0](1200) Loss=1.02060 Rate=49.23 GlobalRate=0.58 Time=Fri Sep 25 07:47:08 2020
-[xla:0](1300) Loss=0.74703 Rate=49.31 GlobalRate=0.63 Time=Fri Sep 25 07:47:12 2020
-[xla:0](1400) Loss=0.74613 Rate=49.35 GlobalRate=0.68 Time=Fri Sep 25 07:47:16 2020
-[xla:0](1500) Loss=0.76008 Rate=49.55 GlobalRate=0.73 Time=Fri Sep 25 07:47:20 2020
-[xla:0](1600) Loss=0.74436 Rate=48.80 GlobalRate=0.77 Time=Fri Sep 25 07:47:24 2020
-[xla:0](1700) Loss=0.74433 Rate=49.21 GlobalRate=0.82 Time=Fri Sep 25 07:47:28 2020
-[xla:0](1800) Loss=0.74404 Rate=49.29 GlobalRate=0.87 Time=Fri Sep 25 07:47:32 2020
-[xla:0](1900) Loss=0.74386 Rate=49.39 GlobalRate=0.92 Time=Fri Sep 25 07:47:37 2020
-[xla:0](2000) Loss=0.74873 Rate=49.71 GlobalRate=0.96 Time=Fri Sep 25 07:47:41 2020
-[xla:0](2100) Loss=0.74387 Rate=49.62 GlobalRate=1.01 Time=Fri Sep 25 07:47:45 2020
-Finished training epoch 0
-[xla:0](0) Acc=1.00000 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:47:52 2020
-[xla:0](100) Acc=0.97030 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:47:58 2020
-[xla:0](200) Acc=0.96766 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:03 2020
-[xla:0](300) Acc=0.96678 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:07 2020
-[xla:0](400) Acc=0.96758 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:11 2020
-[xla:0](500) Acc=0.96108 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:16 2020
-[xla:0](600) Acc=0.96173 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:20 2020
-[xla:0](700) Acc=0.96362 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:25 2020
-[xla:0](800) Acc=0.96317 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:29 2020
-[xla:0](900) Acc=0.96337 Rate=0.00 GlobalRate=0.00 Time=Fri Sep 25 07:48:33 2020
-[xla:0] Accuracy=96.35%
-Finished test epoch 0, valid=96.35
-('DONE', 96.35)
+```shell
+tt100k_2021
+├── annotations_all.json
+├── marks.jpg
+├── report.pdf
+├── test_result.pkl
+├── marks
+│   └── <mark name>.png
+├── re_marks
+│   └── <mark name>.jpg
+├── train
+│   └── <image id>.jpg
+├── test
+│   └── <image id>.jpg
+└── other
+    └── <image id>.jpg
 ```
-Acc drops on 2.6%
+### 模型
 
-# COST
-1. BERT-large
-15411713558ns
-13870042109ns
-14300081014ns
-12136016172ns
-12392196777ns
-12904527936ns
+检测模型为Faster RCNN, Backbone为ResNet。
 
-2. RoBERTa-3-Large-ext
-2161661649ns
-1966810849ns
-2085638407ns
-2046428213ns
-2026669033ns
-2279752473ns
+目前的训练基于ResNet50。
 
-同比下降-84.488%，209ms（原1350ms）
+训练参数如下：
+1. 图片尺寸：2048\* 2048
+2. Batch Size: 1
+3. Epoch: 20
+4. LR: 0.001
+ 
+### 模型训练和测试
+#### 安装依赖库：
+```shell
+python3 -m pip install -r requirements.txt
+```
+#### 模型训练：
+训练之前先进行数据增强：
+```shell
+python3 dataset/augmentation.py
+```
 
-# CIFAR-10数据 data和filenmaes 示例:
-Pandas(labels=9, data=array([142, 143, 144, ...,  52,  44,  38], dtype=uint8), filenames=b'moving_van_s_000051.png')
-Pandas(labels=5, data=array([133, 162, 168, ...,  51,  50,  60], dtype=uint8), filenames=b'pekinese_s_000458.png')
-Pandas(labels=1, data=array([240, 233, 238, ..., 132, 132, 129], dtype=uint8), filenames=b'wagon_s_001343.png')
-Pandas(labels=1, data=array([255, 252, 253, ..., 234, 232, 232], dtype=uint8), filenames=b'automobile_s_002395.png')
-Pandas(labels=9, data=array([  1,   6,  23, ..., 151, 153, 155], dtype=uint8), filenames=b'aerial_ladder_truck_s_001180.png')
-Pandas(labels=1, data=array([129, 128, 130, ..., 185, 184, 187], dtype=uint8), filenames=b'police_cruiser_s_001389.png')
-Pandas(labels=9, data=array([154, 154, 184, ...,  52,  30,  32], dtype=uint8), filenames=b'lorry_s_001596.png')
-Pandas(labels=2, data=array([107,  88,  80, ..., 139,  62, 106], dtype=uint8), filenames=b'sparrow_s_001912.png')
-Pandas(labels=4, data=array([197, 203, 197, ...,  97,  98,  87], dtype=uint8), filenames=b'mule_deer_s_001733.png')
-Pandas(labels=9, data=array([255, 255, 255, ..., 255, 255, 255], dtype=uint8), filenames=b'delivery_truck_s_001529.png')
-Pandas(labels=1, data=array([ 34,  41,  49, ..., 175, 174, 174], dtype=uint8), filenames=b'coupe_s_001573.png')
-Pandas(labels=9, data=array([64, 59, 68, ..., 89, 91, 85], dtype=uint8), filenames=b'lorry_s_000018.png')
-Pandas(labels=8, data=array([224, 224, 224, ..., 213, 212, 195], dtype=uint8), filenames=b'banana_boat_s_001615.png')
+训练前需要设置数据集的位置，具体设置方式为**train.py**中Line18-22。
+Batch Size,lr,num_workers等等请参考**train.py**中的train函数。
+训练过程的显存消耗如下：
+```shell
+| GeForce RTX 3090 |  23629MiB / 24268MiB |  79%  |
+```
+因为图片尺寸较大，当显存较小时请缩小图片尺寸或者对图片进行裁剪，缩小图片尺寸代码在**dataset/transforms.py**里：
+更改min_size和max_size即可
+```python
+def build_transforms(min_size=2048,
+                     max_size=2048,
+                     flip_horizontal_prob=0.5,
+                     mean=[102.9801, 115.9465, 122.7717],
+                     std = [1.,1.,1.],
+                     to_bgr255=True):
+    
+
+    transform = Compose([
+            Resize(min_size, max_size),
+            RandomHorizontalFlip(flip_horizontal_prob),
+            ToTensor(),
+            Normalize(mean=mean, std=std, to_bgr255=to_bgr255),
+        ])
+    return transform
+```
+设置好后训练脚本如下：
+```shell
+python3 train.py --task=train
+```
+本模型用3090来训练的，默认为单卡，如果使用多卡，请调整batch_size和lr之后使用，多卡训练如下所示：
+```shell
+# 8卡训练
+mpirun -np 8 python3 train.py --task=train
+```
+Jittor多卡训练细节请参考：[https://cg.cs.tsinghua.edu.cn/jittor/tutorial/2020-5-2-16-44-distributed/](https://cg.cs.tsinghua.edu.cn/jittor/tutorial/2020-5-2-16-44-distributed/)
+
+#### 模型验证：
+由于训练过程使用全部数据，因此验证过程同样使用训练数据集。
+```shell
+python3 train.py --task=test
+```
+
+#### 模型测试：
+测试集没有Ground Truth。如测试A榜数据，则设置A榜图片的文件路径为数据路径。
+checkpoints链接：[https://cloud.tsinghua.edu.cn/d/0b03f9dedd674101bc94/](https://cloud.tsinghua.edu.cn/d/0b03f9dedd674101bc94/)
+```shell
+python3 evaluate.py
+```
+保存结果的格式为：
+```json
+{
+    "0.jpg": [
+        {
+            "bbox": {
+                "xmin": 1181.00341796875,
+                "ymin": 935.8701171875,
+                "xmax": 1200.79736328125,
+                "ymax": 954.7010498046875
+            },
+            "category": "w21",
+            "score": 0.022070620208978653
+        },
+        {
+            "bbox": {
+                "xmin": 1182.023193359375,
+                "ymin": 936.9432983398438,
+                "xmax": 1203.480712890625,
+                "ymax": 957.1759643554688
+            },
+            "category": "w57",
+            "score": 0.28726232051849365
+        }
+    ],
+    "1.jpg": [
+        {
+            "bbox": {
+                "xmin": 164.0937042236328,
+                "ymin": 699.9683837890625,
+                "xmax": 200.88169860839844,
+                "ymax": 759.8314208984375
+            },
+            "category": "pne",
+            "score": 0.4119001626968384
+        }
+    ]
+}
+```
+
+
+注意细节：
+1. 如果显存较小，存在显存不够的问题，可以考虑把2048\*2048的图片给切割成512\*512的小图片来训练和测试。
+切成小图要考虑box是否被切开的情况，如何处理等等。
+2. 如果显存爆了，模型推理会非常慢，因为此时大量数据存储在内存，而非显存。
+3. 如果出现bug或者有任何困惑，请加入jittor群(QQ:761222083)一起交流
+
+训练过程可视化：
+
+```shell
+tensorboard --logdir=runs --bind_all
+```
+可视化结果如下所示：
+![](pics/map.png)
+![](pics/roi_cls_loss.png)
+![](pics/roi_loc_loss.png)
+![](pics/rpn_cls_loss.png)
+![](pics/rpn_loc_loss.png)
+![](pics/total_loss.png)
+### 可能改进的地方
+1. 在ResNet后面增加FPN
+2. 把ResNet换成ResNeXt
+3. 根据交通标志的大小重新设置RPN的anchors
+4. 使用其他更加有效的检测模型
+5. ....
+
+### 参考
+[1] https://github.com/endernewton/tf-faster-rcnn
+
+[2] https://github.com/chenyuntc/simple-faster-rcnn-pytorch
+
+[3] https://github.com/aarcosg/traffic-sign-detection
+
+[4] https://github.com/Cartucho/mAP
+
+[5] https://cg.cs.tsinghua.edu.cn/traffic-sign/tutorial.html
+
+[6] https://cg.cs.tsinghua.edu.cn/traffic-sign/

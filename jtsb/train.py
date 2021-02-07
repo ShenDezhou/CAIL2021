@@ -1,481 +1,127 @@
-"""Training file for SMP-CAIL2020-Argmine.
-
-Author: Tsinghuaboy tsinghua9boy@sina.com
-
-Usage:
-    python -m torch.distributed.launch train.py \
-        --config_file 'config/bert_config.json'
-    CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch train.py \
-        --config_file 'config/rnn_config.json'
-"""
-import math
-import time
-from typing import Dict
+#coding=utf-8
+import jittor as jt 
+import numpy as np 
+from tqdm import tqdm
+from jittor import optim
 import argparse
-import json
+import sys
+import glob
+import pickle
 import os
-from copy import deepcopy
-from types import SimpleNamespace
+from tensorboardX import SummaryWriter
 
-import numpy
-import torch
-from torch import nn
-from torch.optim import Adam
-from torch.utils.data import DataLoader, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
-from tqdm import tqdm, trange
-from transformers.optimization import (
-    AdamW, get_linear_schedule_with_warmup, get_constant_schedule)
+from utils.ap_eval import calculate_VOC_mAP
+from utils.visualize import save_visualize_image
+from dataset.data import build_dataset
+from model.faster_rcnn import FasterRCNN
 
-from data import Data
-from evaluate import evaluate, calculate_accuracy_f1, get_labels_from_file
-from model import BertForClassification, BertL3ForClassification, RnnForSentencePairClassification,LogisticRegression, CharCNN
-from utils import get_csv_logger, get_path
-from vocab import build_vocab
+DATA_DIR = '/data/lxl/dataset/tt100k/tt100k_2021'
+CLASSNAMES = ['i1', 'i10', 'i11', 'i12', 'i13', 'i14', 'i15', 'i2', 'i3', 'i4', 'i5', 'il100', 'il110', 'il50', 'il60', 'il70', 'il80', 'il90', 'ip', 'p1', 'p10', 'p11', 'p12', 'p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p2', 'p20', 'p21', 'p23', 'p24', 'p25', 'p26', 'p27', 'p28', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'pa10', 'pa12', 'pa13', 'pa14', 'pa8', 'pb', 'pc', 'pg', 'ph2', 'ph2.1', 'ph2.2', 'ph2.4', 'ph2.5', 'ph2.8', 'ph2.9', 'ph3', 'ph3.2', 'ph3.5', 'ph3.8', 'ph4', 'ph4.2', 'ph4.3', 'ph4.5', 'ph4.8', 'ph5', 'ph5.3', 'ph5.5', 'pl10', 'pl100', 'pl110', 'pl120', 'pl15', 'pl20', 'pl25', 'pl30', 'pl35', 'pl40', 'pl5', 'pl50', 'pl60', 'pl65', 'pl70', 'pl80', 'pl90', 'pm10', 'pm13', 'pm15', 'pm1.5', 'pm2', 'pm20', 'pm25', 'pm30', 'pm35', 'pm40', 'pm46', 'pm5', 'pm50', 'pm55', 'pm8', 'pn', 'pne', 'pr10', 'pr100', 'pr20', 'pr30', 'pr40', 'pr45', 'pr50', 'pr60', 'pr70', 'pr80', 'ps', 'pw2.5', 'pw3', 'pw3.2', 'pw3.5', 'pw4', 'pw4.2', 'pw4.5', 'w1', 'w10', 'w12', 'w13', 'w16', 'w18', 'w20', 'w21', 'w22', 'w24', 'w28', 'w3', 'w30', 'w31', 'w32', 'w34', 'w35', 'w37', 'w38', 'w41', 'w42', 'w43', 'w44', 'w45', 'w46', 'w47', 'w48', 'w49', 'w5', 'w50', 'w55', 'w56', 'w57', 'w58', 'w59', 'w60', 'w62', 'w63', 'w66', 'w8', 'i6', 'i7', 'i8', 'i9', 'p29', 'w29', 'w33', 'w36', 'w39', 'w4', 'w40', 'w51', 'w52', 'w53', 'w54', 'w6', 'w61', 'w64', 'w65', 'w67', 'w7', 'w9', 'pd', 'pe', 'pnl', 'w11', 'w14', 'w15', 'w17', 'w19', 'w2', 'w23', 'w25', 'w26', 'w27', 'pm2.5', 'ph4.4', 'ph3.3', 'ph2.6', 'i4l', 'i2r', 'im', 'wc', 'pcr', 'pcl', 'pss', 'pbp', 'p1n', 'pbm', 'pt', 'pn-2', 'pclr', 'pcs', 'pcd', 'iz', 'pmb', 'pdd', 'pctl', 'ph1.8', 'pnlc', 'pmblr', 'phclr', 'phcs', 'pmr']
+EPOCHS = 10
+save_checkpoint_path = f"{DATA_DIR}/checkpoints"
 
-
-import numpy as np
-import os
-import time
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch_xla
-import torch_xla.core.xla_model as xm
-import torch_xla.debug.metrics as met
-import torch_xla.distributed.parallel_loader as pl
-import torch_xla.distributed.xla_multiprocessing as xmp
-import torch_xla.utils.utils as xu
+def eval(val_dataset,faster_rcnn,epoch,is_display=False,is_save_result=True,score_thresh=0.01):
+    faster_rcnn.eval()
+    results = []
+    for batch_idx,(images,boxes,labels,image_sizes,img_ids) in tqdm(enumerate(val_dataset)):
+        result = faster_rcnn.predict(images,score_thresh=score_thresh)
+        for i in range(len(img_ids)):
+            pred_boxes,pred_scores,pred_labels = result[i]
+            gt_boxes = boxes[i]
+            gt_labels = labels[i]
+            img_id = img_ids[i]
+            results.append((img_id.item(),pred_boxes.numpy(),pred_labels.numpy(),pred_scores.numpy(),gt_boxes.numpy(),gt_labels.numpy()))
+            if is_display:
+                save_visualize_image(DATA_DIR,img_id,pred_boxes.numpy(),pred_scores.numpy(),pred_labels.numpy(),gt_boxes.numpy(),gt_labels.numpy(),CLASSNAMES)
+    if is_save_result:
+        os.makedirs(save_checkpoint_path,exist_ok=True)
+        pickle.dump(results,open(f"{save_checkpoint_path}/result_{epoch}.pkl","wb"))
+    mAP,_ = calculate_VOC_mAP(results,CLASSNAMES,use_07_metric=False)
+    return mAP
 
 
-MODEL_MAP = {
-    'bert': BertL3ForClassification,
-    'rnn': RnnForSentencePairClassification,
-    'lr': LogisticRegression,
-    'cnn': CharCNN
-}
-# Define Parameters
+def test():
+    val_dataset = build_dataset(data_dir=DATA_DIR,
+                                anno_file=f'{DATA_DIR}/annotations_aug.json',
+                                classnames=CLASSNAMES,
+                                batch_size=1,
+                                shuffle=False,
+                                num_workers=8,
+                                is_train=False)
+    faster_rcnn = FasterRCNN(n_class=len(CLASSNAMES)+1)
+    files = sorted(list(glob.glob(f'{save_checkpoint_path}/checkpoint*.pkl')))
+    f = files[-1]
+    faster_rcnn.load(f)           
+    mAP = eval(val_dataset,faster_rcnn,0,is_display=True,is_save_result=False,score_thresh=0.5)
+    print(mAP)
+        
+def train():
+    train_dataset = build_dataset(data_dir=DATA_DIR,
+                                  anno_file=f'{DATA_DIR}/annotations_aug.json',
+                                  classnames=CLASSNAMES,
+                                  batch_size=1,
+                                  shuffle=True,
+                                  num_workers=4,
+                                  is_train=True,
+                                  use_all=True)
+    
+    val_dataset = build_dataset(data_dir=DATA_DIR,
+                                anno_file=f'{DATA_DIR}/annotations_aug.json',
+                                classnames=CLASSNAMES,
+                                batch_size=1,
+                                shuffle=False,
+                                num_workers=4,
+                                is_train=False,
+                                use_all=True)
+    
+    faster_rcnn = FasterRCNN(n_class = len(CLASSNAMES)+1)
 
-# SERIAL_EXEC = xmp.MpSerialExecutor()
-# Only instantiate model weights once in memory.
-#WRAPPED_MODEL = None#xmp.MpModelWrapper(ResNet18())
+    optimizer = optim.SGD(faster_rcnn.parameters(),momentum=0.9,lr=0.001)
+    
+    writer = SummaryWriter()
 
-class Trainer:
-    """Trainer for SMP-CAIL2020-Argmine.
+    for epoch in range(EPOCHS):
+        faster_rcnn.train()
+        dataset_len  = len(train_dataset)
+        for batch_idx,(images,boxes,labels,image_sizes,img_ids) in tqdm(enumerate(train_dataset)):
+            rpn_loc_loss,rpn_cls_loss,roi_loc_loss,roi_cls_loss,total_loss = faster_rcnn(images,boxes,labels)
+            
+            optimizer.step(total_loss)
 
+            writer.add_scalar('rpn_cls_loss', rpn_cls_loss.item(), global_step=dataset_len*epoch+batch_idx)
+            writer.add_scalar('rpn_loc_loss', rpn_loc_loss.item(), global_step=dataset_len*epoch+batch_idx)
+            writer.add_scalar('roi_loc_loss', roi_loc_loss.item(), global_step=dataset_len*epoch+batch_idx)
+            writer.add_scalar('roi_cls_loss', roi_cls_loss.item(), global_step=dataset_len*epoch+batch_idx)
+            writer.add_scalar('total_loss', total_loss.item(), global_step=dataset_len*epoch+batch_idx)
+            
+            if batch_idx % 10 == 0:
+                loss_str = '\nrpn_loc_loss: %s \nrpn_cls_loss: %s \nroi_loc_loss: %s \nroi_cls_loss: %s \ntotoal_loss: %s \n'
+                print(loss_str % (rpn_loc_loss.item(),rpn_cls_loss.item(),roi_loc_loss.item(),roi_cls_loss.item(),total_loss.item()))
+        
+        mAP = eval(val_dataset,faster_rcnn,epoch)
+        writer.add_scalar('map', mAP, global_step=epoch)
+        os.makedirs(save_checkpoint_path,exist_ok=True)
+        faster_rcnn.save(f"{save_checkpoint_path}/checkpoint_{epoch}.pkl")
 
-    """
-    def __init__(self,
-                 model, data_loader: Dict[str, DataLoader], device, config):
-        """Initialize trainer with model, data, device, and config.
-        Initialize optimizer, scheduler, criterion.
+def main():
+    parser = argparse.ArgumentParser(description='Test a Faster R-CNN network')
+    parser.add_argument('--task',help='Task(train,test)',default='train',type=str)
+    parser.add_argument('--no_cuda', help='not use cuda', action='store_true')
+    args = parser.parse_args()
+    
+    if not args.no_cuda:
+        jt.flags.use_cuda=1
 
-        Args:
-            model: model to be evaluated
-            data_loader: dict of torch.utils.data.DataLoader
-            device: torch.device('cuda') or torch.device('cpu')
-            config:
-                config.experiment_name: experiment name
-                config.model_type: 'bert' or 'rnn'
-                config.lr: learning rate for optimizer
-                config.num_epoch: epoch number
-                config.num_warmup_steps: warm-up steps number
-                config.gradient_accumulation_steps: gradient accumulation steps
-                config.max_grad_norm: max gradient norm
-
-        """
-        self.model = model
-        self.device = device
-        self.config = config
-        self.data_loader = data_loader
-        self.config.num_training_steps = config.num_epoch * (
-            len(data_loader['train']) // config.batch_size)
-        self.optimizer = self._get_optimizer()
-        self.scheduler = self._get_scheduler()
-        self.criterion = nn.CrossEntropyLoss()
-
-    def _get_optimizer(self):
-        """Get optimizer for different models.
-
-        Returns:
-            optimizer
-        """
-        if self.config.model_type == 'bert':
-            no_decay = ['bias', 'gamma', 'beta']
-            optimizer_parameters = [
-                {'params': [p for n, p in self.model.named_parameters()
-                            if not any(nd in n for nd in no_decay)],
-                 'weight_decay_rate': 0.01},
-                {'params': [p for n, p in self.model.named_parameters()
-                            if any(nd in n for nd in no_decay)],
-                 'weight_decay_rate': 0.0}]
-            optimizer = AdamW(
-                optimizer_parameters,
-                lr=self.config.lr,
-                betas=(0.9, 0.999),
-                weight_decay=1e-8,
-                correct_bias=False)
-        else:  # rnn
-            optimizer = Adam(self.model.parameters(), lr=self.config.lr)
-        return optimizer
-
-    def _get_scheduler(self):
-        """Get scheduler for different models.
-
-        Returns:
-            scheduler
-        """
-        if self.config.model_type == 'bert':
-            scheduler = get_linear_schedule_with_warmup(
-                self.optimizer,
-                num_warmup_steps=self.config.num_warmup_steps,
-                num_training_steps=self.config.num_training_steps)
-        else:  # rnn
-            scheduler = get_constant_schedule(self.optimizer)
-        return scheduler
-
-    def _evaluate_for_train_valid(self):
-        """Evaluate model on train and valid set and get acc and f1 score.
-
-        Returns:
-            train_acc, train_f1, valid_acc, valid_f1
-        """
-        train_predictions = evaluate(
-            model=self.model, data_loader=self.data_loader['valid_train'],
-            device=self.device)
-        valid_predictions = evaluate(
-            model=self.model, data_loader=self.data_loader['valid_valid'],
-            device=self.device)
-        train_answers = get_labels_from_file(self.config.train_file_path)
-        valid_answers = get_labels_from_file(self.config.valid_file_path)
-        train_acc, train_f1 = calculate_accuracy_f1(
-            train_answers, train_predictions)
-        valid_acc, valid_f1 = calculate_accuracy_f1(
-            valid_answers, valid_predictions)
-        return train_acc, train_f1, valid_acc, valid_f1
-
-    def _epoch_evaluate_update_description_log(
-            self, tqdm_obj, logger, epoch):
-        """Evaluate model and update logs for epoch.
-
-        Args:
-            tqdm_obj: tqdm/trange object with description to be updated
-            logger: logging.logger
-            epoch: int
-
-        Return:
-            train_acc, train_f1, valid_acc, valid_f1
-        """
-        # Evaluate model for train and valid set
-        results = self._evaluate_for_train_valid()
-        train_acc, train_f1, valid_acc, valid_f1 = results
-        # Update tqdm description for command line
-        tqdm_obj.set_description(
-            'Epoch: {:d}, train_acc: {:.6f}, train_f1: {:.6f}, '
-            'valid_acc: {:.6f}, valid_f1: {:.6f}, '.format(
-                epoch, train_acc, train_f1, valid_acc, valid_f1))
-        # Logging
-        logger.info(','.join([str(epoch)] + [str(s) for s in results]))
-        return train_acc, train_f1, valid_acc, valid_f1
-
-    def save_model(self, filename):
-        """Save model to file.
-
-        Args:
-            filename: file name
-        """
-        torch.save(self.model.state_dict(), filename)
-
-    def train(self):
-        """Train model on train set and evaluate on train and valid set.
-
-        Returns:
-            state dict of the best model with highest valid f1 score
-        """
-        epoch_logger = get_csv_logger(
-            os.path.join(self.config.log_path,
-                         self.config.experiment_name + '-epoch.csv'),
-            title='epoch,train_acc,train_f1,valid_acc,valid_f1')
-        step_logger = get_csv_logger(
-            os.path.join(self.config.log_path,
-                         self.config.experiment_name + '-step.csv'),
-            title='step,loss')
-        trange_obj = trange(self.config.num_epoch, desc='Epoch', ncols=120)
-        # self._epoch_evaluate_update_description_log(
-        #     tqdm_obj=trange_obj, logger=epoch_logger, epoch=0)
-        best_model_state_dict, best_valid_f1, global_step = None, 0, 0
-        for epoch, _ in enumerate(trange_obj):
-            self.model.train()
-            tqdm_obj = tqdm(self.data_loader['train'], ncols=80)
-            for step, batch in enumerate(tqdm_obj):
-                batch = tuple(t.to(self.device) for t in batch)
-                logits = self.model(*batch[:-1])  # the last one is label
-                loss = self.criterion(logits, batch[-1])
-
-                # if self.config.gradient_accumulation_steps > 1:
-                #     loss = loss / self.config.gradient_accumulation_steps
-                # self.optimizer.zero_grad()
-                loss.backward()
-
-                if (step + 1) % self.config.gradient_accumulation_steps == 0:
-                    torch.nn.utils.clip_grad_norm_(
-                            self.model.parameters(), self.config.max_grad_norm)
-
-                    # after 梯度累加的基本思想在于，在优化器更新参数前，也就是执行 optimizer.step() 前，进行多次反向传播，是的梯度累计值自动保存在 parameter.grad 中，最后使用累加的梯度进行参数更新。
-                    self.optimizer.step()
-                    self.scheduler.step()
-                    self.optimizer.zero_grad()
-                    global_step += 1
-                    tqdm_obj.set_description('loss: {:.6f}'.format(loss.item()))
-                    step_logger.info(str(global_step) + ',' + str(loss.item()))
-
-
-            results = self._epoch_evaluate_update_description_log(
-                tqdm_obj=trange_obj, logger=epoch_logger, epoch=epoch + 1)
-            self.save_model(os.path.join(
-                self.config.model_path, self.config.experiment_name,
-                self.config.model_type + '-' + str(epoch + 1) + '.bin'))
-
-            if results[-1] > best_valid_f1:
-                best_model_state_dict = deepcopy(self.model.state_dict())
-                best_valid_f1 = results[-1]
-        return best_model_state_dict
-
-
-
-
-
-def main(config_file='config/bert_config.json'):
-    """Main method for training.
-
-    Args:
-        config_file: in config dir
-    """
-    global datasets
-    # 0. Load config and mkdir
-    with open(config_file) as fin:
-        config = json.load(fin, object_hook=lambda d: SimpleNamespace(**d))
-
-
-    get_path(os.path.join(config.model_path, config.experiment_name))
-    get_path(config.log_path)
-    if config.model_type in ['rnn', 'lr','cnn']:  # build vocab for rnn
-        build_vocab(file_in=config.all_train_file_path,
-                    file_out=os.path.join(config.model_path, 'vocab.txt'))
-    # 1. Load data
-    data = Data(vocab_file=os.path.join(config.model_path, 'vocab.txt'),
-                max_seq_len=config.max_seq_len,
-                model_type=config.model_type, config=config)
-
-
-    def load_dataset():
-        datasets = data.load_train_and_valid_files(
-            train_file=config.train_file_path,
-            valid_file=config.valid_file_path)
-        return datasets
-
-    if config.serial_load:
-        datasets = SERIAL_EXEC.run(load_dataset)
+    if args.task == 'test':
+        test()
+    elif args.task == 'train':
+        train()
     else:
-        datasets = load_dataset()
-
-    train_set, valid_set_train, valid_set_valid = datasets
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-        # device = torch.device('cpu')
-        # torch.distributed.init_process_group(backend="nccl")
-        # sampler_train = DistributedSampler(train_set)
-        sampler_train = RandomSampler(train_set)
-    else:
-        device = torch.device('cpu')
-        sampler_train = RandomSampler(train_set)
-    # TPU
-    device = xm.xla_device()
-    sampler_train = torch.utils.data.distributed.DistributedSampler(
-        train_set,
-        num_replicas=xm.xrt_world_size(),
-        rank=xm.get_ordinal(),
-        shuffle=True)
-
-    data_loader = {
-        'train': DataLoader(
-            train_set, sampler=sampler_train, batch_size=config.batch_size),
-        'valid_train': DataLoader(
-            valid_set_train, batch_size=config.batch_size, shuffle=False),
-        'valid_valid': DataLoader(
-            valid_set_valid, batch_size=config.batch_size, shuffle=False)}
-
-
-    # 2. Build model
-    # model = MODEL_MAP[config.model_type](config)
-    model = WRAPPED_MODEL
-    #load model states.
-    # if config.trained_weight:
-    #     model.load_state_dict(torch.load(config.trained_weight))
-    model.to(device)
-    if torch.cuda.is_available():
-        model = model
-        # model = torch.nn.parallel.DistributedDataParallel(
-        #     model, find_unused_parameters=True)
-
-    # 3. Train
-    trainer = Trainer(model=model, data_loader=data_loader,
-                      device=device, config=config)
-    # best_model_state_dict = trainer.train()
-
-    if config.model_type == 'bert':
-        no_decay = ['bias', 'gamma', 'beta']
-        optimizer_parameters = [
-            {'params': [p for n, p in model.named_parameters()
-                        if not any(nd in n for nd in no_decay)],
-             'weight_decay_rate': 0.01},
-            {'params': [p for n, p in model.named_parameters()
-                        if any(nd in n for nd in no_decay)],
-             'weight_decay_rate': 0.0}]
-        optimizer = AdamW(
-            optimizer_parameters,
-            lr=config.lr,
-            betas=(0.9, 0.999),
-            weight_decay=1e-8,
-            correct_bias=False)
-    else:  # rnn
-        optimizer = Adam(model.parameters(), lr=config.lr)
-
-    # if config.model_type == 'bert':
-    #     scheduler = get_linear_schedule_with_warmup(
-    #         optimizer,
-    #         num_warmup_steps=config.num_warmup_steps,
-    #         num_training_steps=config.num_training_steps)
-    # else:  # rnn
-    #     scheduler = get_constant_schedule(optimizer)
-
-    criterion = nn.CrossEntropyLoss()
-
-    def train_loop_fn(loader):
-        tracker = xm.RateTracker()
-        model.train()
-        for x, batch in enumerate(loader):
-            # batch = tuple(t.to(self.device) for t in batch)
-            output = model(*batch[:-1])  # the last one is label
-            loss = criterion(output, batch[-1])
-            loss.backward()
-            # xm.optimizer_step(optimizer)
-            # optimizer.zero_grad()
-
-            tracker.add(FLAGS.batch_size)
-            if (x + 1) % config.gradient_accumulation_steps == 0:
-                torch.nn.utils.clip_grad_norm_(
-                    model.parameters(), config.max_grad_norm)
-                # after 梯度累加的基本思想在于，在优化器更新参数前，也就是执行 optimizer.step() 前，进行多次反向传播，是的梯度累计值自动保存在 parameter.grad 中，最后使用累加的梯度进行参数更新。
-                xm.optimizer_step(optimizer)
-                optimizer.zero_grad()
-
-            if xm.get_ordinal() == 0:
-                if x % FLAGS.log_steps == 0:
-                    print('[xla:{}]({}) Loss={:.5f} Rate={:.2f} GlobalRate={:.2f} Time={}'.format(
-                        xm.get_ordinal(), x, loss.item(), tracker.rate(),
-                        tracker.global_rate(), time.asctime()), flush=True)
-
-    def test_loop_fn(loader):
-        total_samples = 0
-        correct = 0
-        model.eval()
-        data, pred, target = None, None, None
-        tracker = xm.RateTracker()
-        for x, batch in enumerate(loader):
-            output = model(*batch[:-1])  # the last one is label
-            target = batch[-1]
-            # pred = output.max(1, keepdim=True)[1]
-            # correct += pred.eq(target.view_as(pred)).sum().item()
-            for i in range(len(output)):
-                logits = output[i]
-                pred = int(torch.argmax(logits, dim=-1))
-                if pred == target[i]:
-                    correct += 1
-            total_samples += len(output)
-
-            if xm.get_ordinal() == 0:
-                if x % FLAGS.log_steps == 0:
-                    print('[xla:{}]({}) Acc={:.5f} Rate={:.2f} GlobalRate={:.2f} Time={}'.format(
-                        xm.get_ordinal(), x, correct*1.0/total_samples, tracker.rate(),
-                        tracker.global_rate(), time.asctime()), flush=True)
-
-        accuracy = 100.0 * correct / total_samples
-        if xm.get_ordinal() == 0:
-            print('[xla:{}] Accuracy={:.2f}%'.format(xm.get_ordinal(), accuracy), flush=True)
-        return accuracy, data, pred, target
-
-    # Train and eval loops
-    accuracy = 0.0
-    data, pred, target = None, None, None
-    for epoch in range(FLAGS.num_epoch):
-        para_loader = pl.ParallelLoader(data_loader['train'], [device])
-        train_loop_fn(para_loader.per_device_loader(device))
-        xm.master_print("Finished training epoch {}".format(epoch))
-
-        # para_loader = pl.ParallelLoader(data_loader['valid_train'], [device])
-        # accuracy_train, data, pred, target = test_loop_fn(para_loader.per_device_loader(device))
-
-        para_loader = pl.ParallelLoader(data_loader['valid_valid'], [device])
-        accuracy_valid, data, pred, target = test_loop_fn(para_loader.per_device_loader(device))
-        xm.master_print("Finished test epoch {}, valid={:.2f}".format(epoch, accuracy_valid))
-
-        if FLAGS.metrics_debug:
-            xm.master_print(met.metrics_report())
-        # 4. Save model
-        # if xm.get_ordinal() == 0:
-            # if epoch==FLAGS.num_epoch-1:
-            # WRAPPED_MODEL.to('cpu')
-            # torch.save(WRAPPED_MODEL.state_dict(), os.path.join(
-            #     config.model_path, config.experiment_name,
-            #     config.model_type + '-' + str(epoch + 1) + '.bin'))
-            # xm.master_print('saved model.')
-            # WRAPPED_MODEL.to(device)
-
-    return accuracy_valid
-    # 4. Save model
-    # torch.save(best_model_state_dict,
-    #            os.path.join(config.model_path, 'model.bin'))
-
-
-
-
-def _mp_fn(rank, flags, model,serial):
-    global WRAPPED_MODEL, FLAGS, SERIAL_EXEC
-    WRAPPED_MODEL = model
-    FLAGS = flags
-    SERIAL_EXEC = serial
-
-    accuracy_valid = main(args.config_file)
-    # Retrieve tensors that are on TPU core 0 and plot.
-    # plot_results(data.cpu(), pred.cpu(), target.cpu())
-    xm.master_print(('DONE',  accuracy_valid))
-    # 4. Save model
-    if rank == 0:
-        WRAPPED_MODEL.to('cpu')
-        torch.save(WRAPPED_MODEL.state_dict(), os.path.join(config.model_path, 'model.bin'))
-        xm.master_print('saved model.')
+        print(f"No this task: {args.task}")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-c', '--config_file', default='config/roberta3_config.json',
-        help='model config file')
+    main()
+    
 
-    parser.add_argument(
-        '--local_rank', default=0,
-        help='used for distributed parallel')
-    args = parser.parse_args()
-
-
-    with open(args.config_file) as fin:
-        config = json.load(fin, object_hook=lambda d: SimpleNamespace(**d))
-    WRAPPED_MODEL = MODEL_MAP[config.model_type](config)
-    if config.trained_weight:
-        WRAPPED_MODEL.load_state_dict(torch.load(config.trained_weight))
-    FLAGS = config
-    SERIAL_EXEC = xmp.MpSerialExecutor()
-
-    # main(args.config_file)
-    xmp.spawn(_mp_fn, args=(FLAGS,WRAPPED_MODEL,SERIAL_EXEC,), nprocs=config.num_cores, start_method='fork')
+    
+    
