@@ -4,7 +4,7 @@
   "model_path": "model/xlnet6l/",
   "log_path": "log/",
 
-  "train_file_path": "data/train.data",
+  "train_file_path": "data/test.data",
   "valid_file_path": "data/test.data",
 
   "batch_size": 12,

@@ -26,7 +26,7 @@ from transformers.optimization import (
     AdamW, get_linear_schedule_with_warmup, get_constant_schedule)
 
 from data import Data
-from evaluate import evaluate, calculate_accuracy_f1, get_labels_from_file
+from evaluate import evaluate, evaluate_gpu, calculate_accuracy_f1, get_labels_from_file
 from model import BertForClassification, BertL3ForClassification, RnnForSentencePairClassification,LogisticRegression, CharCNN
 from utils import get_csv_logger, get_path
 from vocab import build_vocab
@@ -124,10 +124,10 @@ class Trainer:
         Returns:
             train_acc, train_f1, valid_acc, valid_f1
         """
-        train_predictions, train_length = evaluate(
+        train_predictions, train_length = evaluate_gpu(
             model=self.model, data_loader=self.data_loader['valid_train'],
             device=self.device)
-        valid_predictions, valid_length = evaluate(
+        valid_predictions, valid_length = evaluate_gpu(
             model=self.model, data_loader=self.data_loader['valid_valid'],
             device=self.device)
 
@@ -188,8 +188,8 @@ class Trainer:
                          self.config.experiment_name + '-step.csv'),
             title='step,loss')
         trange_obj = trange(self.config.num_epoch, desc='Epoch', ncols=120)
-        # self._epoch_evaluate_update_description_log(
-        #     tqdm_obj=trange_obj, logger=epoch_logger, epoch=0)
+        self._epoch_evaluate_update_description_log(
+            tqdm_obj=trange_obj, logger=epoch_logger, epoch=0)
         best_model_state_dict, best_train_f1, global_step = None, 0, 0
         for epoch, _ in enumerate(trange_obj):
             self.model.train()
@@ -292,7 +292,7 @@ def main(config_file='config/bert_config.json'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--config_file', default='config/bert_config-xl.json',
+        '-c', '--config_file', default='config/xlnet_bert_config.json',
         help='model config file')
 
     parser.add_argument(
