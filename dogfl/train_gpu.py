@@ -124,10 +124,10 @@ class Trainer:
         Returns:
             train_acc, train_f1, valid_acc, valid_f1
         """
-        train_predictions, train_length = evaluate_gpu(
+        train_predictions = evaluate_gpu(
             model=self.model, data_loader=self.data_loader['valid_train'],
             device=self.device)
-        valid_predictions, valid_length = evaluate_gpu(
+        valid_predictions = evaluate_gpu(
             model=self.model, data_loader=self.data_loader['valid_valid'],
             device=self.device)
 
@@ -188,8 +188,8 @@ class Trainer:
                          self.config.experiment_name + '-step.csv'),
             title='step,loss')
         trange_obj = trange(self.config.num_epoch, desc='Epoch', ncols=120)
-        self._epoch_evaluate_update_description_log(
-            tqdm_obj=trange_obj, logger=epoch_logger, epoch=0)
+        # self._epoch_evaluate_update_description_log(
+        #     tqdm_obj=trange_obj, logger=epoch_logger, epoch=0)
         best_model_state_dict, best_train_f1, global_step = None, 0, 0
         for epoch, _ in enumerate(trange_obj):
             self.model.train()

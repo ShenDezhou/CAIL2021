@@ -59,7 +59,7 @@ def get_labels_from_file(filename):
     """
     data_frame = pandas.read_csv(filename)
     labels = data_frame['label'].tolist()
-    labels = [l+1 for l in labels]
+    # labels = [l+1 for l in labels]
     return labels
 
 def eval_file(golds_file, predicts_file):
