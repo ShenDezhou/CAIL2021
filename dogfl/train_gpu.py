@@ -73,7 +73,7 @@ class Trainer:
             len(data_loader['train']) // config.batch_size)
         self.optimizer = self._get_optimizer()
         self.scheduler = self._get_scheduler()
-        self.criterion = nn.MultiLabelSoftMarginLoss(reduction='mean')
+        self.criterion = nn.CrossEntropyLoss(reduction='mean')
 
     def _get_optimizer(self):
         """Get optimizer for different models.
@@ -131,8 +131,8 @@ class Trainer:
             model=self.model, data_loader=self.data_loader['valid_valid'],
             device=self.device)
 
-        train_answers = handy_tool(self.data_loader['train_label'], train_length)#get_labels_from_file(self.config.train_file_path)
-        valid_answers = handy_tool(self.data_loader['valid_label'], valid_length)#get_labels_from_file(self.config.valid_file_path)
+        train_answers = get_labels_from_file(self.config.train_file_path)
+        valid_answers = get_labels_from_file(self.config.valid_file_path)
         train_predictions, valid_predictions = self.flatten(train_predictions), self.flatten(valid_predictions)
         train_answers, valid_answers = self.flatten(train_answers), self.flatten(valid_answers)
         train_acc, train_f1 = calculate_accuracy_f1(
@@ -196,9 +196,9 @@ class Trainer:
             tqdm_obj = tqdm(self.data_loader['train'], ncols=80)
             for step, batch in enumerate(tqdm_obj):
                 batch = tuple(t.to(self.device) for t in batch)
-                # logits = self.model(*batch[:-1])  # the last one is label
-                # loss = self.criterion(logits, batch[-1])
-                loss = self.model(*batch)  # the last one is label
+                logits = self.model(*batch[:-1])  # the last one is label
+                loss = self.criterion(logits, batch[-1])
+                # loss = self.model(*batch)  # the last one is label
 
                 # if self.config.gradient_accumulation_steps > 1:
                 #     loss = loss / self.config.gradient_accumulation_steps
@@ -224,9 +224,9 @@ class Trainer:
                 self.config.model_path, self.config.experiment_name,
                 self.config.model_type + '-' + str(epoch + 1) + '.bin'))
 
-            if results[-3] > best_train_f1:
+            if results[-1] > best_train_f1:
                 best_model_state_dict = deepcopy(self.model.state_dict())
-                best_train_f1 = results[-3]
+                best_train_f1 = results[-1]
 
         return best_model_state_dict
 
@@ -252,7 +252,7 @@ def main(config_file='config/bert_config.json'):
     datasets = data.load_train_and_valid_files(
         train_file=config.train_file_path,
         valid_file=config.valid_file_path)
-    train_set, valid_set_train, valid_set_valid, train_label, valid_label = datasets
+    train_set, valid_set_train, valid_set_valid = datasets
     if torch.cuda.is_available():
         device = torch.device('cuda')
         # device = torch.device('cpu')
@@ -268,9 +268,7 @@ def main(config_file='config/bert_config.json'):
         'valid_train': DataLoader(
             valid_set_train, batch_size=config.batch_size, shuffle=False),
         'valid_valid': DataLoader(
-            valid_set_valid, batch_size=config.batch_size, shuffle=False),
-        "train_label":train_label,
-        "valid_label":valid_label
+            valid_set_valid, batch_size=config.batch_size, shuffle=False)
     }
     # 2. Build model
     model = MODEL_MAP[config.model_type](config)

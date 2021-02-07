@@ -335,7 +335,7 @@ class Data:
             tokens = s1_list[i]
             segment_ids = [0] * len(tokens)
             tokens += s2_list[i]
-            segment_ids += [1] * (len(s2_list[i]) + 1)
+            segment_ids += [1] * len(s2_list[i])
             if len(tokens) > 512:
                 tokens = tokens[:256] + tokens[-256:]
                 assert len(tokens) == 512

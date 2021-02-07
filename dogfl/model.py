@@ -115,11 +115,13 @@ class BertL3ForClassification(nn.Module):
                 token_type_ids=token_type_ids,
                 output_hidden_states=True
             )
+            pooled_output = bert_output
         else:
             _, bert_out, bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                             output_hidden_states=True)
+            pooled_output = torch.mean(bert_output[-1], dim=1)
 
-        pooled_output = bert_output
+
         # bert_output[0]: (batch_size, sequence_length, hidden_size)
         # bert_output[1]: (batch_size, hidden_size)
         # take the last three token which is the 85% probability of [MASK] during the training.

@@ -7,7 +7,7 @@
   "train_file_path": "data/train.data",
   "valid_file_path": "data/test.data",
 
-  "batch_size": 16,
+  "batch_size": 4,
 
   "bert_model_path": "F:\\4_model/xlnet_tiny",
   "trained_weight":"",
@@ -17,7 +17,7 @@
   "limit": 100,
 
   "lr": 4e-5,
-  "num_epoch": 10,
+  "num_epoch": 1,
   "log_steps": 100,
   "serial_load": true,
   "metrics_debug": false,
