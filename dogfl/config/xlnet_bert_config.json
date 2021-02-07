@@ -7,7 +7,7 @@
   "train_file_path": "data/train.data",
   "valid_file_path": "data/test.data",
 
-  "batch_size": 4,
+  "batch_size": 12,
 
   "bert_model_path": "F:\\4_model/xlnet_tiny",
   "trained_weight":"",

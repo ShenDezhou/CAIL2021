@@ -117,7 +117,7 @@ class BertL3ForClassification(nn.Module):
             )
             pooled_output = bert_output
         else:
-            _, bert_out, bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+            _, _, bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                             output_hidden_states=True)
             pooled_output = torch.mean(bert_output[-1], dim=1)
 
