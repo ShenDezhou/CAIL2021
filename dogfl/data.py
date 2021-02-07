@@ -203,8 +203,8 @@ class Data:
         return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
     def img2index(self, bits):
-        bits = bits.view(32,32,3)
-        bits = bits.permute(2, 0, 1)
+        # bits = bits.view(32,32,3)
+        bits = bits.transpose([2, 0, 1])
 
         unicodestr = ""
         for i in range(3):
