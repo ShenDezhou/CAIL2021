@@ -91,6 +91,8 @@ def main():
     optimizer = SGD(model.parameters(), lr=lr, momentum=0.9) 
     if args.resume:
         model.load(args.model_path)
+    #random save for test
+    model.save(args.model_path)
     if args.eval:
         evaluate(model, val_loader)
         return 
