@@ -54,9 +54,13 @@ def evaluate(model, val_loader):
         output = model(images)
 
         _, pred = topk_(output.data, 5, axis=1)
+
         print(pred)
         answer_list.extend(pred)
-
+    answer_list = [nd.tolist() for nd in answer_list]
+    # label start from 1
+    for i in range(len(answer_list)):
+        answer_list[i] = [i + 1 for i in answer_list[i]]
     return answer_list
 
 
@@ -102,7 +106,6 @@ def main():
 
     top5_class_list = evaluate(model, val_loader)
     # label start from 1, however it doesn't
-    top5_class_list = [i+1 for i in top5_class_list]
     pred_result = dict(zip(name_list, top5_class_list))
 
     with open(args.out_file, 'w') as fout:
