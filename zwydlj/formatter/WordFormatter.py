@@ -51,8 +51,8 @@ class WordFormatter:
 
                 temp_context = []
                 temp_question = []
-
-                temp_question.append(self.convert(content, self.max_question_len, trucate_head=True))
+                q_text = _question['Question']
+                temp_question.append(self.convert(content+q_text, self.max_question_len, trucate_head=True))
                 for choice in _question["Choices"]:
                     temp_context.append(self.convert(choice, self.max_option_len))
                 for _ in range(4 - len(_question["Choices"])):

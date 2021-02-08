@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', '-c', help="specific config file", required=True,default="config/model.config")
+    parser.add_argument('--config', '-c', help="specific config file", default="config/model.config")
     parser.add_argument('--gpu', '-g', help="gpu id list", default="0")
-    parser.add_argument('--checkpoint', help="checkpoint file path", required=True)
-    parser.add_argument('--result', help="result file path", required=True,default="output/result.csv")
+    parser.add_argument('--checkpoint', help="checkpoint file path",  default="output/model/model.bin")
+    parser.add_argument('--result', help="result file path", default="output/result.csv")
     args = parser.parse_args()
 
     configFilePath = args.config
@@ -48,5 +48,10 @@ if __name__ == "__main__":
 
     parameters = init_all(config, gpu_list, args.checkpoint, "test")
 
-    json.dump(test(parameters, config, gpu_list), open(args.result, "w", encoding="utf8"), ensure_ascii=False,
-              sort_keys=True, indent=2)
+    # json.dump(test(parameters, config, gpu_list), open(args.result, "w", encoding="utf8"), ensure_ascii=False,
+    #           sort_keys=True, indent=2)
+    results = test(parameters, config, gpu_list)
+    with open(args.result, "w", encoding="utf8") as f:
+        f.write("id,label\n")
+        for result in results:
+            f.write(f"{result['id']},{result['answer'][0]}\n")
