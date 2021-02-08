@@ -3,7 +3,7 @@ from pathlib import Path
 from tokenizers import BertWordPieceTokenizer
 
 
-paths = [str(x) for x in Path("./data/").glob("**/data*train.csv")]
+paths = [str(x) for x in Path("./data/").glob("**/data*eval.csv")]
 
 # Initialize a tokenizer
 tokenizer = BertWordPieceTokenizer()
