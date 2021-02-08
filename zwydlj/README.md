@@ -1,37 +1,94 @@
-项目使用方法请参考[这里](https://github.com/haoxizhong/pytorch-worker)。
-
+# 基于LSTM的阅读理解模型
 该模型为用Attention整合题干和选项，然后进行预测的模型。
 
-数据预处理命令： ``python utils\cutter.py --data input --output data/cutted --gen_word2id``
-训练命令： ``python3 train.py --config config/model.config --gpu 0``。
+## 准备工作
 
+使用`pip install -r Freeze.txt`安装运行所需环境。
 
-#2020.07.15   hidden 256, number of layer 2, epoch 10, TEST F1: 17.21
-#2020.07.15   lstm encoder tripled hidden neurons and add one more layer from 2 to 3, batch size lowered to 32, epoch lowered to 10.   TEST F1: 24.9
-#2020.07.16   lstm encoder tripled hidden neurons and add one more layer from 2 to 3, batch size lowered to 32, epoch lowered to 14.   TEST F1: 27.04
-#2020.07.16   lstm encoder tripled hidden neurons and add one more layer from 2 to 3, batch size lowered to 32, epoch lowered to 19.   TEST F1: 26.41
+## 1. 生成词表
 
+数据预处理命令： 
+``python3 wordcutter.py --data data --output dataprocessed --gen_word2id``
 
-1      train  2635/2634  20:06/ 0:00    5.223   {"micro_precision": 0.038}
-1      valid  25/25       0:02/ 0:00    2.497   {"micro_precision": 0.06}
-2      train  2635/2634  20:38/ 0:00    5.060   {"micro_precision": 0.049}
-2      valid  25/25       0:02/ 0:00    2.351   {"micro_precision": 0.1}
-3      train  2635/2634  20:32/ 0:00    4.693   {"micro_precision": 0.111}
-3      valid  25/25       0:02/ 0:00    1.861   {"micro_precision": 0.21}
-4      train  2635/2634  20:35/ 0:00    3.619   {"micro_precision": 0.329}
-4      valid  25/25       0:02/ 0:00    1.020   {"micro_precision": 0.69}
-5      train  2635/2634  20:35/ 0:00    2.450   {"micro_precision": 0.565}
-5      valid  25/25       0:02/ 0:00    0.494   {"micro_precision": 0.88}
-6      train  2635/2634  20:32/ 0:00    1.606   {"micro_precision": 0.738}
-6      valid  25/25       0:02/ 0:00    0.273   {"micro_precision": 0.95}
-7      train  2635/2634  20:33/ 0:00    1.094   {"micro_precision": 0.834}
-7      valid  25/25       0:02/ 0:00    0.163   {"micro_precision": 0.98}
-8      train  2635/2634  20:31/ 0:00    0.793   {"micro_precision": 0.889}
-8      valid  25/25       0:02/ 0:00    0.112   {"micro_precision": 0.98}
-9      train  2635/2634  20:34/ 0:00    0.614   {"micro_precision": 0.919}
-9      valid  25/25       0:02/ 0:00    0.089   {"micro_precision": 0.98}
+将在data目录下生成一个词表``word2id.txt``，用于对文本编码。
 
+## 2. 训练
+训练命令： 
+``python3 train.py --config config/model.config --gpu 0``。
 
-RoBERTa
-19     train  2108/2107  35:32/-1:59    3.199   {"micro_precision": 0.546}
-19     valid  39/39       0:05/ 0:00    0.979   {"micro_precision": 0.705}
+## 3. 生成结果文件
+推理命令：
+``python3 test.py  --config config/model.config --gpu 0 --checkpoint output/model/model.bin --output output/result.csv``
+
+生成的result.csv即为结果
+
+# 附录
+对config/model.config简单说明
+```
+[train] #train parameters
+epoch = 10
+batch_size = 8
+shuffle = True
+reader_num = 0
+
+optimizer = adam
+learning_rate = 8e-4
+step_size = 1
+lr_multiplier = 0.9995
+gradient_accumulation_steps = 1
+max_grad_norm=1e-2
+
+[eval] 
+batch_size = 8
+shuffle = False
+reader_num = 0
+
+[data]
+train_dataset_type=JsonListFromFiles
+train_formatter_type=WordFormatter
+train_data_path=data              #训练数据集目录
+train_file_list=train_train.json  #训练数据集文件
+
+valid_dataset_type=JsonListFromFiles
+valid_formatter_type=WordFormatter
+valid_data_path=data               #验证集目录
+valid_file_list=train_val.json     #验证集文件
+
+test_dataset_type=JsonListFromFiles
+test_formatter_type=WordFormatter
+test_data_path=data                 #测试集目录
+test_file_list=validation.json      #测试集文件
+
+max_question_len = 2048
+max_option_len = 64
+
+word2id = data/word2id.txt         #通过训练集生成的词编码文件
+
+[model]
+model_name=Model
+dropout=0.05
+
+hidden_size = 256                  #LSTM 隐含层
+bi_direction = True                #双向LSTM
+num_layers = 1                     #LSTM层数
+
+[output]
+output_time=1                     #多少轮模型保存义词
+test_time=2                       #每多少轮运行验证结果
+model_path=output/model           #模型保存目录
+model_name=attention
+tensorboard_path=output/tensorboard
+
+accuracy_method=SingleLabelTop1  
+output_function=Basic
+output_value=micro_precision      #micro accuracy评价方法
+```
+# 运行范例
+
+```
+0      train  711/710     5:56/ 0:00    1.373   {"micro_precision": 0.287}
+0      valid  79/79       0:28/ 0:00    1.370   {"micro_precision": 0.295}
+1      train  711/710     5:34/ 0:00    1.353   {"micro_precision": 0.328}
+2      train  711/710     5:37/ 0:00    1.235   {"micro_precision": 0.46}
+2      valid  79/79       0:29/ 0:00    1.425   {"micro_precision": 0.297}
+```
