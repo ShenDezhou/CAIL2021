@@ -9,7 +9,8 @@ from model import Net
 import argparse 
 
 
-jt.flags.use_cuda=0
+
+jt.flags.use_cuda=1
 
 def train(model, train_loader, optimizer, epoch):
     model.train() 
@@ -35,13 +36,14 @@ def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
     global best_acc
     total_acc = 0
     total_num = 0
-
-    for images, labels in val_loader:
+    pbar = tqdm(val_loader, desc=f'Epoch {epoch} [EVAL]')
+    for images, labels in pbar:
         output = model(images)
         pred = np.argmax(output.data, axis=1)
         acc = np.sum(pred == labels.data)
         total_acc += acc
-        total_num += labels.shape[0] 
+        total_num += labels.shape[0]
+        pbar.set_description(f'Epoch {epoch} [EVAL] acc = {total_acc / total_num :.2f}')
     acc = total_acc / total_num 
     if acc > best_acc:
         best_acc = acc
@@ -75,15 +77,16 @@ def main():
     ])
 
     root_dir = args.dataroot
-    train_loader = TsinghuaDog(root_dir, batch_size=16, train=True, part='train', shuffle=True, transform=transform_train)
-    
+    train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True, transform=transform_train)
+
     transform_test = transform.Compose([
         transform.Resize((512, 512)),
         transform.CenterCrop(448),
         transform.ToTensor(),
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    val_loader = TsinghuaDog(root_dir, batch_size=16, train=False, part='val', shuffle=False, transform=transform_test)
+    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test)
+
     epochs = args.epochs
     model = Net(num_classes=args.num_classes)
     lr = args.lr
@@ -92,7 +95,7 @@ def main():
     if args.resume:
         model.load(args.model_path)
     #random save for test
-    model.save(args.model_path)
+    #model.save(args.model_path)
     if args.eval:
         evaluate(model, val_loader)
         return 

@@ -58,29 +58,30 @@ class TsinghuaDog(Dataset):
 
 
 class TsinghuaDogExam(Dataset):
-    def __init__(self, root_dir, batch_size, list_path= "/content/drive/MyDrive/dogflj/data/test_a.lst", train=False, shuffle=False, transform=None, num_workers=1):
+    def __init__(self, root_dir, batch_size, name_list=None, train=False, shuffle=False, transform=None, num_workers=1):
         super().__init__()
         self.root_dir = root_dir
         self.batch_size = batch_size
         self.train = train
         self.num_classes = 130
-        self.list_path = list_path
+        self.name_list = name_list
         self.shuffle = shuffle
         self.image_list = []
         self.id_list = []
         self.transform = transform
 
+        if name_list:
+            line = name_list
+        else:
+            _, _, name_list = os.walk(root_dir)
 
-        with open(list_path, 'r') as f:
-            line = f.readline()
-            while line:
-                line = line.strip()
-                # img_name = line.split('/')[-2] + '/' + line.split('/')[-1]
-                # cls_name = line.split('/')[-2]
-                # label = int(cls_name.split('-')[1][-3:]) - 1
-                self.image_list.append(line)
-                self.id_list.append(0)
-                line = f.readline()
+        for line in name_list:
+            line = line.strip()
+            # img_name = line.split('/')[-2] + '/' + line.split('/')[-1]
+            # cls_name = line.split('/')[-2]
+            # label = int(cls_name.split('-')[1][-3:]) - 1
+            self.image_list.append(line)
+            self.id_list.append(0)
 
         self.set_attrs(
             batch_size=self.batch_size,

@@ -1,4 +1,5 @@
 import json
+import os
 
 import jittor as jt
 import jittor.nn as nn 
@@ -10,7 +11,7 @@ from model import Net
 import argparse 
 
 
-jt.flags.use_cuda=0
+jt.flags.use_cuda=1
 
 def train(model, train_loader, optimizer, epoch):
     model.train() 
@@ -93,16 +94,14 @@ def main():
         transform.ToTensor(),
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    val_loader = TsinghuaDogExam(root_dir, batch_size=16, train=False, list_path= "/content/drive/MyDrive/dogflj/data/test_a.lst", shuffle=False, transform=transform_test)
+
+    _, _, name_list = os.walk(root_dir)
+    val_loader = TsinghuaDogExam(root_dir, batch_size=args.batch_size, train=False, name_list=name_list, shuffle=False, transform=transform_test)
 
     model = Net(num_classes=args.num_classes)
     if args.resume:
         model.load(args.model_path)
 
-    name_list = []
-    with open("/content/drive/MyDrive/dogflj/data/test_a.lst", 'r') as f:
-        for line in f:
-            name_list.append(line.strip())
 
     top5_class_list = evaluate(model, val_loader)
     # label start from 1, however it doesn't
