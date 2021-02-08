@@ -24,7 +24,7 @@ class Model(nn.Module):
         self.question_encoder = LSTMEncoder(config, gpu_list, *args, **params)
         self.attention = Attention(config, gpu_list, *args, **params)
 
-        self.rank_module = nn.Linear(self.hidden_size * 2, 1)
+        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
 
         self.criterion = nn.CrossEntropyLoss()
 
