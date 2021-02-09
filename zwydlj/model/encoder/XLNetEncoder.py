@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers.modeling_bert import BertModel
+from transformers import AutoModel
 
-class BertEncoder(nn.Module):
+class XLNetEncoder(nn.Module):
     def __init__(self, config, gpu_list, *args, **params):
-        super(BertEncoder, self).__init__()
-        self.bert = BertModel.from_pretrained(config.get("model", "bert_path"))
+        super(XLNetEncoder, self).__init__()
+        self.bert = AutoModel.from_pretrained(config.get("model", "bert_path"))
         self.max_seq_len = config.getint("model", "max_seq_len")
         for param in self.bert.parameters():
             param.requires_grad = True

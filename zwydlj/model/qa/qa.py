@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 from model.encoder.LSTMEncoder import LSTMEncoder
 from model.encoder.GRUEncoder import GRUEncoder
+from model.encoder.BertEncoder import BertEncoder
+from model.encoder.XLNetEncoder import XLNetEncoder
 from model.layer.Attention import Attention
 from tools.accuracy_tool import single_label_top1_accuracy, multi_label_top1_accuracy
 from model.qa.util import generate_ans, multi_generate_ans
@@ -70,6 +72,130 @@ class Model(nn.Module):
             return {"loss": loss, "acc_result": acc_result}
 
         return {"output": generate_ans(data["id"], y)}
+
+
+class ModelX(nn.Module):
+    def __init__(self, config, gpu_list, *args, **params):
+        super(ModelX, self).__init__()
+
+        self.hidden_size = config.getint("model", "hidden_size")
+
+        self.context_len = config.getint("data", "max_option_len")
+        self.question_len = config.getint("data", "max_question_len")
+
+        # self.embedding = nn.Embedding(self.word_num, self.hidden_size)
+        self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
+        # for param in self.context_encoder.parameters():
+        #     param.requires_grad = True
+
+        self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
+        # for param in self.question_encoder.parameters():
+        #     param.requires_grad = True
+
+        self.attention = Attention(config, gpu_list, *args, **params)
+        self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
+
+
+        self.bce = nn.CrossEntropyLoss(reduction='mean')
+        self.gelu = nn.GELU()
+        self.softmax = nn.Softmax(dim=1)
+        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
+        self.accuracy_function = single_label_top1_accuracy
+
+    def init_multi_gpu(self, device, config, *args, **params):
+        pass
+
+    def forward(self, data, config, gpu_list, acc_result, mode):
+        context = data["context"]
+        question = data["question"]
+        batch = question[0].size()[0]
+
+        _, _, context = self.context_encoder(*context)
+        _, _, question = self.question_encoder(*question)
+
+        context = context[-1]
+        question = question[-1]
+        context = context.view(batch, -1, self.hidden_size)
+        question = question.view(batch, -1, self.hidden_size)
+
+        c, q, a = self.attention(context, question)
+        c = torch.mean(c, dim=1)
+        q = torch.mean(q, dim=1)
+        y = torch.cat([c, q], dim=1)
+
+        y = self.rank_module(y)
+
+
+        if mode != "test":
+            label = data["label"]
+            loss = self.bce(y, label)
+            acc_result = self.accuracy_function(y, label, config, acc_result)
+            return {"loss": loss, "acc_result": acc_result}
+
+        return {"output": generate_ans(data["id"], y)}
+
+
+
+class ModelL(nn.Module):
+    def __init__(self, config, gpu_list, *args, **params):
+        super(ModelL, self).__init__()
+
+        self.hidden_size = config.getint("model", "hidden_size")
+
+        self.context_len = config.getint("data", "max_option_len")
+        self.question_len = config.getint("data", "max_question_len")
+
+        # self.embedding = nn.Embedding(self.word_num, self.hidden_size)
+        self.context_encoder = XLNetEncoder(config, gpu_list, *args, **params)
+        # for param in self.context_encoder.parameters():
+        #     param.requires_grad = True
+
+        self.question_encoder = XLNetEncoder(config, gpu_list, *args, **params)
+        # for param in self.question_encoder.parameters():
+        #     param.requires_grad = True
+
+        self.attention = Attention(config, gpu_list, *args, **params)
+        self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
+
+
+        self.bce = nn.CrossEntropyLoss(reduction='mean')
+        self.gelu = nn.GELU()
+        self.softmax = nn.Softmax(dim=1)
+        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
+        self.accuracy_function = single_label_top1_accuracy
+
+    def init_multi_gpu(self, device, config, *args, **params):
+        pass
+
+    def forward(self, data, config, gpu_list, acc_result, mode):
+        context = data["context"]
+        question = data["question"]
+        batch = question[0].size()[0]
+
+        _, _, context = self.context_encoder(*context)
+        _, _, question = self.question_encoder(*question)
+
+        context = context[-1]
+        question = question[-1]
+        context = context.view(batch, -1, self.hidden_size)
+        question = question.view(batch, -1, self.hidden_size)
+
+        c, q, a = self.attention(context, question)
+        c = torch.mean(c, dim=1)
+        q = torch.mean(q, dim=1)
+        y = torch.cat([c, q], dim=1)
+
+        y = self.rank_module(y)
+
+
+        if mode != "test":
+            label = data["label"]
+            loss = self.bce(y, label)
+            acc_result = self.accuracy_function(y, label, config, acc_result)
+            return {"loss": loss, "acc_result": acc_result}
+
+        return {"output": generate_ans(data["id"], y)}
+
 
 class ModelXS(nn.Module):
     def __init__(self, config, gpu_list, *args, **params):
@@ -250,7 +376,7 @@ class ModelS(nn.Module):
         return {"output": multi_generate_ans(data["id"], y)}
 
 
-from model.encoder.BertEncoder import BertEncoder
+
 class Linear(nn.Module):
     def __init__(self, in_features, out_features, dropout=0.0):
         super(Linear, self).__init__()
@@ -269,76 +395,6 @@ class Linear(nn.Module):
             x = self.dropout(x)
         x = self.linear(x)
         return x
-
-
-class ModelX(nn.Module):
-    def __init__(self, config, gpu_list, *args, **params):
-        super(ModelX, self).__init__()
-
-        self.hidden_size = config.getint("model", "hidden_size")
-
-        self.context_len = config.getint("data", "max_option_len")
-        self.question_len = config.getint("data", "max_question_len")
-
-        # self.embedding = nn.Embedding(self.word_num, self.hidden_size)
-        self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
-        # for param in self.context_encoder.parameters():
-        #     param.requires_grad = True
-
-        self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
-        # for param in self.question_encoder.parameters():
-        #     param.requires_grad = True
-
-        self.attention = Attention(config, gpu_list, *args, **params)
-        self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
-
-
-        self.bce = nn.CrossEntropyLoss(reduction='mean')
-        # self.kl = nn.KLDivLoss(reduction='mean')
-        self.gelu = nn.GELU()
-        self.softmax = nn.Softmax(dim=1)
-        # self.fc_module_inner = nn.Linear(self.question_len * self.context_len *  4, self.hidden_size)
-        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
-        self.accuracy_function = single_label_top1_accuracy
-
-    def init_multi_gpu(self, device, config, *args, **params):
-        pass
-
-    def forward(self, data, config, gpu_list, acc_result, mode):
-        context = data["context"]
-        question = data["question"]
-        batch = question[0].size()[0]
-        #option = question[0].size()[1]
-
-        _, _, context = self.context_encoder(*context)
-        _, _, question = self.question_encoder(*question)
-
-        context = context[-1]
-        question = question[-1]
-        context = context.view(batch, -1, self.hidden_size)
-        question = question.view(batch, -1, self.hidden_size)
-
-        # last_bert_context = last_bert_context.reshape(batch,-1, self.hidden_size)
-        # last_hidden = torch.add(last_bert_question, last_bert_context)
-        # options_hidden = bert_context[-2].reshape(batch, -1, self.hidden_size)
-
-        c, q, a = self.attention(context, question)
-        c = torch.mean(c, dim=1)
-        q = torch.mean(q, dim=1)
-        y = torch.cat([c, q], dim=1)
-
-        #y = y.view(batch * option, -1)
-        y = self.rank_module(y)
-        # y = self.softmax(y)
-
-
-        if mode != "test":
-            label = data["label"]
-            loss = self.bce(y, label)
-            acc_result = self.accuracy_function(y, label, config, acc_result)
-            return {"loss": loss, "acc_result": acc_result}
-
-        return {"output": generate_ans(data["id"], y)}
 
 
 from model.encoder.GRUEncoder import GRUEncoder
