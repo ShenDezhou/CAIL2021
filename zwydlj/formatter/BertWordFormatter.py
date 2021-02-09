@@ -21,17 +21,17 @@ class BertWordFormatter:
                 arr.append(self.word2id["UNK"])
         return arr
 
-    def convert(self, tokens, l, bk=False):
+    def convert(self, tokens, max_seq_len, trucate_head=False):
         tokens = "".join(tokens)
-        # while len(tokens) < l:
-        #     tokens.append("PAD")
-        # if bk:
-        #     tokens = tokens[len(tokens) - l:]
-        # else:
-        #     tokens = tokens[:l]
-        ids = self.tokenizer.tokenize(tokens)
-
-        return ids
+        tokens = self.tokenizer.tokenize(tokens)
+        if trucate_head:
+            tokens = tokens[len(tokens) - max_seq_len:]
+        else:
+            tokens = tokens[:max_seq_len]
+        #ids = self._convert_sentence_pair_to_bert_dataset([tokens], max_seq_len)
+        if len(tokens) < max_seq_len:
+            tokens = tokens + (['PAD'] * (max_seq_len - len(tokens)))
+        return tokens
 
     def _convert_sentence_pair_to_bert_dataset(
             self, context, max_len):
@@ -52,23 +52,24 @@ class BertWordFormatter:
         """
         all_input_ids, all_input_mask, all_segment_ids = [], [], []
         for i, _ in enumerate(context):
-            if len(context[i]) > max_len:
-                context[i] = context[i][-max_len:]
-            tokens = ['[CLS]'] + context[i] + ['[SEP]']
-            segment_ids = [i%2] * len(tokens)
-            if len(tokens) > max_len:
-                tokens = tokens[:max_len]
-                assert len(tokens) == max_len
-                segment_ids = segment_ids[:max_len]
-            input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
-            input_mask = [1] * len(input_ids)
-            tokens_len = len(input_ids)
-            input_ids += [0] * (max_len - tokens_len)
-            segment_ids += [0] * (max_len - tokens_len)
-            input_mask += [0] * (max_len - tokens_len)
-            all_input_ids.append(input_ids)
-            all_input_mask.append(input_mask)
-            all_segment_ids.append(segment_ids)
+            for j, _ in enumerate(context[i]):
+                if len(context[i][j]) > max_len:
+                    context[i][j] = context[i][j][-max_len:]
+                tokens = context[i][j]
+                segment_ids = [0] * len(tokens)
+                if len(tokens) > max_len:
+                    tokens = tokens[:max_len]
+                    assert len(tokens) == max_len
+                    segment_ids = segment_ids[:max_len]
+                input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+                input_mask = [1] * len(input_ids)
+                tokens_len = len(input_ids)
+                input_ids += [0] * (max_len - tokens_len)
+                segment_ids += [0] * (max_len - tokens_len)
+                input_mask += [0] * (max_len - tokens_len)
+                all_input_ids.append(input_ids)
+                all_input_mask.append(input_mask)
+                all_segment_ids.append(segment_ids)
         all_input_ids = torch.tensor(all_input_ids, dtype=torch.long)
         all_input_mask = torch.tensor(all_input_mask, dtype=torch.long)
         all_segment_ids = torch.tensor(all_segment_ids, dtype=torch.long)
@@ -83,39 +84,27 @@ class BertWordFormatter:
         idx = []
 
         for temp_data in data:
-            idx.append(temp_data["id"])
+            content = temp_data["Content"]
+            questions = temp_data["Questions"]
+            for _question in questions:
+                idx.append(_question["Q_id"])
 
-            if mode != "test":
-                # label_x = []
-                # for opt in list("ABCD"):
-                #     if opt in temp_data["answer"]:
-                #         label_x.append(1)
-                #     else:
-                #         label_x.append(0)
+                if mode != "test":
+                    label_x = "ABCD".find(_question["Answer"])
+                    label.append(label_x)
 
-                label_x = -1
-                if "A" in temp_data["answer"]:
-                    label_x += 1
-                if "B" in temp_data["answer"]:
-                    label_x += 2
-                if "C" in temp_data["answer"]:
-                    label_x += 4
-                if "D" in temp_data["answer"]:
-                    label_x += 8
-                label.append(label_x)
+                temp_context = []
+                temp_question = []
+                q_text = _question['Question']
+                temp_question.append(self.convert(content + q_text, self.max_question_len, trucate_head=True))
+                for choice in _question["Choices"]:
+                    temp_context.append(self.convert(choice, self.max_option_len))
+                for _ in range(4 - len(_question["Choices"])):
+                    temp_context.append(self.convert("", self.max_option_len))
 
-            temp_context = []
-            temp_question = []
+                context.append(temp_context)
+                question.append(temp_question)
 
-            temp_question.append(self.convert(temp_data["statement"], self.max_question_len, bk=True))
-            for option in ["A", "B", "C", "D"]:
-                temp_context.append(self.convert(temp_data["option_list"][option], self.max_option_len))
-
-            context.extend(temp_context)
-            question.extend(temp_question)
-
-        # question = torch.tensor(question, dtype=torch.long)
-        # context = torch.tensor(context, dtype=torch.long)
         question = self._convert_sentence_pair_to_bert_dataset(question, self.max_question_len)
         context = self._convert_sentence_pair_to_bert_dataset(context, self.max_option_len)
         if mode != "test":

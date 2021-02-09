@@ -270,81 +270,12 @@ class Linear(nn.Module):
         x = self.linear(x)
         return x
 
-# class ConvBnRelu(nn.Module):
-#     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros', inplace=True):
-#         super().__init__()
-#         self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation,
-#                               groups=groups, bias=bias, padding_mode=padding_mode)
-#         self.bn = nn.BatchNorm2d(out_channels)
-#         self.relu = nn.ReLU(inplace=inplace)
-#
-#     def forward(self, x):
-#         x = self.conv(x)
-#         x = self.bn(x)
-#         x = self.relu(x)
-#         return x
-
-# class FPN(nn.Module):
-#     def __init__(self, in_channels, out_channels=256, **kwargs):
-#         """
-#         :param in_channels: 基础网络输出的维度
-#         :param kwargs:
-#         """
-#         super().__init__()
-#         inplace = True
-#         self.conv_out = out_channels
-#         # out_channels = out_channels // 4
-#         # reduce layers
-#         self.reduce_conv_c2 = ConvBnRelu(in_channels[0], out_channels, kernel_size=1, inplace=inplace)
-#         self.reduce_conv_c3 = ConvBnRelu(in_channels[1], out_channels, kernel_size=1, inplace=inplace)
-#         self.reduce_conv_c4 = ConvBnRelu(in_channels[2], out_channels, kernel_size=1, inplace=inplace)
-#         self.reduce_conv_c5 = ConvBnRelu(in_channels[3], out_channels, kernel_size=1, inplace=inplace)
-#         # Smooth layers
-#         self.smooth_p4 = ConvBnRelu(out_channels, out_channels, kernel_size=3, padding=1, inplace=inplace)
-#         self.smooth_p3 = ConvBnRelu(out_channels, out_channels, kernel_size=3, padding=1, inplace=inplace)
-#         self.smooth_p2 = ConvBnRelu(out_channels, out_channels, kernel_size=3, padding=1, inplace=inplace)
-#
-#         self.conv = nn.Sequential(
-#             nn.Conv2d(self.conv_out, self.conv_out, kernel_size=3, padding=1, stride=1),
-#             nn.BatchNorm2d(self.conv_out),
-#             nn.ReLU(inplace=inplace)
-#         )
-#         self.out_channels = self.conv_out
-#
-#     def forward(self, x):
-#         # c2, c3, c4, c5 = x
-#         # Top-down
-#         p5 = self.reduce_conv_c5(x)
-#         x = self._upsample_add(p5, self.reduce_conv_c4(x))
-#         # p4 = self.smooth_p4(p4)
-#         # p3 = self._upsample_add(p4, self.reduce_conv_c3(c3))
-#         # p3 = self.smooth_p3(p3)
-#         # p2 = self._upsample_add(p3, self.reduce_conv_c2(c2))
-#         # p2 = self.smooth_p2(p2)
-#         #
-#         # x = self._upsample_cat(p2, p3, p4, p5)
-#         # x = self.conv(x)
-#         return x
-#
-#     def _upsample_add(self, x, y):
-#         return F.interpolate(x, size=y.size()[2:]) + y
-#
-#     def _upsample_cat(self, p2, p3, p4, p5):
-#         h, w = p2.size()[2:]
-#         p3 = F.interpolate(p3, size=(h, w))
-#         p4 = F.interpolate(p4, size=(h, w))
-#         p5 = F.interpolate(p5, size=(h, w))
-#         return torch.cat([p2, p3, p4, p5], dim=1)
 
 class ModelX(nn.Module):
     def __init__(self, config, gpu_list, *args, **params):
         super(ModelX, self).__init__()
 
         self.hidden_size = config.getint("model", "hidden_size")
-        # self.word_num = 0
-        # f = open(config.get("data", "word2id"), "r", encoding="utf8")
-        # for line in f:
-        #     self.word_num += 1
 
         self.context_len = config.getint("data", "max_option_len")
         self.question_len = config.getint("data", "max_question_len")
@@ -361,138 +292,43 @@ class ModelX(nn.Module):
         self.attention = Attention(config, gpu_list, *args, **params)
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
-        # self.att_weight_c = Linear(self.hidden_size, 1)
-        # self.att_weight_q = Linear(self.hidden_size, 1)
-        # self.att_weight_cq = Linear(self.hidden_size, 1)
-        # self.conv1 = nn.Conv2d(1, 1, kernel_size=13, stride=7,padding=0, bias=False)
-        # self.conv2 = nn.Conv2d(1, 1, kernel_size=11, stride=5, padding=0, bias=False)
-        # self.conv3 = nn.Conv2d(1, 1, kernel_size=7, stride=3, padding=0, bias=False)
-        # self.conv4 = nn.Conv2d(1, 1, kernel_size=5, stride=3, padding=0, bias=False)
-        # self.conv5 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=0, bias=False)
-        # self.maxpool = nn.MaxPool2d(kernel_size=5, stride=3, padding=0)
-
-        # self.resnet = ResNet(block=Bottleneck, groups=1, layers=[1,1,1,1], num_classes=64)
-        # self.fpn = FPN(in_channels=[1, 1, 1, self.context_len * 4], out_channels=self.question_len)
 
         self.bce = nn.CrossEntropyLoss(reduction='mean')
         # self.kl = nn.KLDivLoss(reduction='mean')
         self.gelu = nn.GELU()
         self.softmax = nn.Softmax(dim=1)
         # self.fc_module_inner = nn.Linear(self.question_len * self.context_len *  4, self.hidden_size)
-        self.fc_module = nn.Linear(self.context_len * self.question_len * 4, 15)
+        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
         pass
 
-    # def att_flow_layer(self, c, q):
-    #     """
-    #     :param c: (batch, c_len, hidden_size * 2)
-    #     :param q: (batch, q_len, hidden_size * 2)
-    #     :return: (batch, c_len, q_len)
-    #     """
-    #     c_len = c.size(1)
-    #     q_len = q.size(1)
-    #
-    #     cq = []
-    #     for i in range(q_len):
-    #         # (batch, 1, hidden_size * 2)
-    #         qi = q.select(1, i).unsqueeze(1)
-    #         # (batch, c_len, 1)
-    #         ci = self.att_weight_cq(c * qi).squeeze()
-    #         cq.append(ci)
-    #     # (batch, c_len, q_len)
-    #     cq = torch.stack(cq, dim=-1)
-    #
-    #     # (batch, c_len, q_len)
-    #     s = self.att_weight_c(c).expand(-1, -1, q_len) + \
-    #         self.att_weight_q(q).permute(0, 2, 1).expand(-1, c_len, -1) + \
-    #         cq
-    #
-    #     # (batch, c_len, q_len)
-    #     a = F.softmax(s, dim=2)
-    #     # (batch, c_len, q_len) * (batch, q_len, hidden_size * 2) -> (batch, c_len, hidden_size * 2)
-    #     c2q_att = torch.bmm(a, q)
-    #     # (batch, 1, c_len)
-    #     b = F.softmax(torch.max(s, dim=2)[0], dim=1).unsqueeze(1)
-    #     # (batch, 1, c_len) * (batch, c_len, hidden_size * 2) -> (batch, hidden_size * 2)
-    #     q2c_att = torch.bmm(b, c).squeeze()
-    #     # (batch, c_len, hidden_size * 2) (tiled)
-    #     q2c_att = q2c_att.unsqueeze(1).expand(-1, c_len, -1)
-    #     # q2c_att = torch.stack([q2c_att] * c_len, dim=1)
-    #
-    #     # (batch, c_len, hidden_size * 8)
-    #     x = torch.cat([c, c2q_att, c * c2q_att, c * q2c_att], dim=-1)
-    #     return x
-
     def forward(self, data, config, gpu_list, acc_result, mode):
         context = data["context"]
         question = data["question"]
-
         batch = question[0].size()[0]
+        #option = question[0].size()[1]
 
-        last_bert_question, _, bert_question = self.question_encoder(*question)
-        last_bert_context, _, bert_context = self.context_encoder(*context)
-        last_bert_context = last_bert_context.reshape(batch,-1, self.hidden_size)
-        last_hidden = torch.add(last_bert_question, last_bert_context)
-        options_hidden = bert_context[-2].reshape(batch, -1, self.hidden_size)
-        # bert_question = bert_question[-2]
-        # bert_context = bert_context[-2].reshape(batch, 4, self.context_len, -1)
+        _, _, context = self.context_encoder(*context)
+        _, _, question = self.question_encoder(*question)
 
+        context = context[-1]
+        question = question[-1]
+        context = context.view(batch, -1, self.hidden_size)
+        question = question.view(batch, -1, self.hidden_size)
 
-        # contextpool = []
-        # for i in range(4):
-        #     option = bert_context[:,i,:,:].squeeze(1)
-        #     c, q, a = self.attention(option, bert_question)
-        #     contextpool.append(a)
-            # question = q
+        # last_bert_context = last_bert_context.reshape(batch,-1, self.hidden_size)
+        # last_hidden = torch.add(last_bert_question, last_bert_context)
+        # options_hidden = bert_context[-2].reshape(batch, -1, self.hidden_size)
 
-        # cp = torch.cat(contextpool, dim=1)
-        # y = y.unsqueeze(1)
+        c, q, a = self.attention(context, question)
+        c = torch.mean(c, dim=1)
+        q = torch.mean(q, dim=1)
+        y = torch.cat([c, q], dim=1)
 
-        # y = self.conv5(y)
-        # y = torch.sigmoid(y)
-        # y = self.conv2(y)
-        # y = self.conv3(y)
-        # y = self.conv4(y)
-        # y = self.conv5(y)
-        # y = self.gelu(y)
-        # y = self.conv4(y)
-        # y = torch.sigmoid(y)
-
-        # context = bert_context[-1].view(batch, -1, self.context_len, self.hidden_size)
-        # question = bert_question[-1].view(batch,4, self.context_len, self.hidden_size)
-
-        # context_2 = bert_context[-2].view(batch, -1, self.context_len, self.hidden_size)
-        # question_2 = bert_question[-2].view(batch,4, self.context_len, self.hidden_size)
-        #
-        # context = torch.cat([context_1,context_2], dim=1)
-        # question = torch.cat([question_1, question_2], dim=1)
-        # context = (context_1 + context_2)/2
-        # question = (question_1 + question_2)/2
-        # y = torch.cat([context, question, context_2, question_2], dim=1)
-        # y = question.view(batch,4, self.context_len, self.context_len, -1)
-        # y = y.permute(0,1,4,2,3)
-        # y = y.reshape(batch, -1, self.context_len, self.context_len)
-        # y = y.reshape((batch, -1))
-
-        # y = torch.cat([torch.max(c, dim=1)[0] for c in contextpool], dim=1)
-        # y = torch.cat(contextpool, dim=1)
-        # x = x.permute(0,2,1)
-        # y = y.permute(0,2,1)
-        _, _, z = self.attention(last_hidden, options_hidden)
-        # a = self.att_flow_layer(context, question)
-        # c, q = context, question
-        # ymax = torch.cat([torch.max(c, dim=1)[0], torch.max(q, dim=1)[0]], dim=1)
-        # ymean = torch.cat([torch.mean(c, dim=1), torch.mean(q, dim=1)], dim=1)
-        # y = torch.cat([ymax,ymean], dim=1)
-        # y = self.resnet(y)
-        # y = self.fpn(y)
-        # y = self.gelu(y)
-        y = z.flatten(start_dim=1)
-        # y = self.fc_module_inner(y)
-        y = self.dropout(y)
-        y = self.fc_module(y)
+        #y = y.view(batch * option, -1)
+        y = self.rank_module(y)
         # y = self.softmax(y)
 
 
