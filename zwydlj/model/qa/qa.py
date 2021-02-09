@@ -50,8 +50,11 @@ class Model(nn.Module):
         _, question = self.question_encoder(question)
 
         c, q, a = self.attention(context, question)
-
-        y = torch.cat([torch.max(c, dim=1)[0], torch.max(q, dim=1)[0]], dim=1)
+        # c = torch.max(c, dim=1)[0]
+        # q = torch.max(q, dim=1)[0]
+        c = torch.mean(c, dim=1)
+        q = torch.mean(q, dim=1)
+        y = torch.cat([c, q], dim=1)
 
         y = y.view(batch * option, -1)
         y = self.rank_module(y)
