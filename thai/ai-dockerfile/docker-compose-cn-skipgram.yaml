@@ -1,6 +1,7 @@
 services:
   web:
     image: wordrepresentation:1.0
+    restart: unless-stopped
     network_mode: "host"
     volumes:
       - /mnt/data/wordrepr/model/:/workspace/model/

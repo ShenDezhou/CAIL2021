@@ -4,6 +4,7 @@ services:
     environment:
       - gpus=all
     network_mode: "host"
+    restart: unless-stopped
     container_name: case4classification_light
     volumes:
       - /mnt/data/roberta3_large_ext:/workspace/roberta3_large_ext

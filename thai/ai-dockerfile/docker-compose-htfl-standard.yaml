@@ -4,6 +4,7 @@ services:
     environment:
       - gpus=all
     network_mode: "host"
+    restart: unless-stopped
     container_name: contractclassification_standard
     volumes:
       - /mnt/data/htfldocker/log:/workspace/data

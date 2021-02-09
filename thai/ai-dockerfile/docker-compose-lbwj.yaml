@@ -4,6 +4,7 @@ services:
     environment:
       - gpus=all
     network_mode: "host"
+    restart: unless-stopped
     container_name: caseargue_light
     volumes:
       - /mnt/data/lbwj/log:/workspace/data

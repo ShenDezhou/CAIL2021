@@ -5,6 +5,7 @@ services:
       - gpus=all
     network_mode: "host"
     container_name: xlnet_word_segment
+    restart: unless-stopped
     volumes:
     - /mnt/data/zwfc/model:/workspace/model
     - /mnt/data/zwfc/log:/workspace/data
