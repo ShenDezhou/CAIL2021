@@ -1,0 +1,13 @@
+services:
+  web:
+    image: xsfl202classification:1.0
+    environment:
+      - gpus=all
+    network_mode: "host"
+    restart: unless-stopped
+    volumes:
+      - /mnt/data/xlnet_base:/workspace/xlnet_base
+      - /mnt/data/xsfl/model/bertxl:/workspace/model/bertxl/
+      - /mnt/data/xsfl/log:/workspace/log
+    container_name: xsfl202_classification
+    command: python3 torch_server.py -c config/xlbert_config.json -p 58074

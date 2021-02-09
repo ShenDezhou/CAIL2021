@@ -1,0 +1,8 @@
+services:
+  web:
+    image: contractamount:2.0
+    network_mode: "host"
+    volumes:
+    - /mnt/data/jesbl/log:/workspace/data
+    - /mnt/data/jesbl/model_data_v6:/workspace/model_data_v6
+    command: python3 tensorflow_server.py -m model_data_v6 -p 58090
