@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers.modeling_bert import BertModel
+from transformers import BertModel
 
 class BertEncoder(nn.Module):
     def __init__(self, config, gpu_list, *args, **params):
