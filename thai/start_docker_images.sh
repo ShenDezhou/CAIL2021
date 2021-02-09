@@ -15,3 +15,5 @@ docker-compose -p case4 -f ai-dockerfile/docker-compose-ayfl-lighten.yaml up -d
 docker-compose -p lawasmart -f ai-dockerfile/docker-compose-fc.yaml up -d
 
 docker-compose -p lawaindex -f ai-dockerfile/docker-compose-fc-search.yaml up -d
+
+docker-compose -p zwbs -f ai-dockerfile/docker-compose-cn-skipgram.yaml up -d
