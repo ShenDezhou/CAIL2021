@@ -8,6 +8,7 @@
   "valid_file_path": "data/bmes_valid.json",
   "test_file_path": "data/bmes_test.json",
   "trained_weight":"",
+  "augment": 3,
 
   "batch_size": 256,
 

@@ -8,7 +8,7 @@
   "valid_file_path": "data/bmes_valid.json",
   "test_file_path": "data/bmes_test.json",
 
-  "batch_size": 64,
+  "batch_size": 1,
 
   "bert_model_path": "F:\\4_model\\roberta_wwm_ext",
   "trained_weight":"",
