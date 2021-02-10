@@ -1147,7 +1147,7 @@ class BERXLNet(nn.Module):
         # use anti-mask for answers-locator
         # mask = char_id.eq(0)
         # chars = self.char_emb(char_id)
-        _,  layers = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
+        _, _,  layers = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, output_hidden_states=True)
         chars = (layers[-1] + 0.5 * layers[-2] + 0.25 * layers[-3] + 0.125 * layers[-4]) / 2
         #
         # # if self.bichar_emb is not None:
