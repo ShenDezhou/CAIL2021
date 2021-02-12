@@ -18,4 +18,4 @@ class XLNetEncoder(nn.Module):
             all_segment_ids = all_segment_ids.cuda()
 
         return self.bert(input_ids=all_input_ids,attention_mask=all_input_mask,token_type_ids=all_segment_ids,
-                        output_hidden_states=True)
+                         output_hidden_states=False)
