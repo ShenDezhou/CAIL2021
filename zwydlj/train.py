@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', '-c', help="specific config file", default="config/model_xlnet_tiny.config")
+    parser.add_argument('--config', '-c', help="specific config file", default="config/model_bert_tiny.config")
     parser.add_argument('--gpu', '-g', help="gpu id list", default='0')
     parser.add_argument('--checkpoint', '-t', help="checkpoint file path")
     parser.add_argument('--do_test', help="do test while training or not", action="store_true")

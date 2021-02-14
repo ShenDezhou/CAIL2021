@@ -87,7 +87,7 @@ class ModelX(nn.Module):
         self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
         #self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
 
-        self.attention = Attention(config, gpu_list, *args, **params)
+        # self.attention = Attention(config, gpu_list, *args, **params)
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
 
@@ -104,16 +104,31 @@ class ModelX(nn.Module):
         context = data["context"]
         question = data["question"]
         batch = question[0].size()[0]
-
+        seq_len = question[0].size()[1]
         context, _ = self.context_encoder(*context)
-        question, _ = self.context_encoder(*question)
+        if seq_len > 512:
+            n = seq_len // 512
+            a,b,c = question
+            temp_question = None
+            for i in range(n):
+                _a, _b, _c = a[:,i*512:(i+1)*512], b[:,i*512:(i+1)*512], c[:,i*512:(i+1)*512]
+                if torch.any(_b.bool()):
+                    _question, _ = self.context_encoder(_a, _b, _c)
+                    if i:
+                        temp_question += _question
+                    else:
+                        temp_question = _question
+            question = temp_question
+        else:
+            question, _ = self.context_encoder(*question)
 
         # context = context[-1]
         # question = question[-1]
         context = context.view(batch, -1, self.hidden_size)
         question = question.view(batch, -1, self.hidden_size)
 
-        c, q, a = self.attention(context, question)
+        # c, q, a = self.attention(context, question)
+        c, q = context, question
         c = torch.mean(c, dim=1)
         q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
@@ -166,9 +181,22 @@ class ModelL(nn.Module):
         context = data["context"]
         question = data["question"]
         batch = question[0].size()[0]
-
+        seq_len = question[0].size()[1]
         context, _ = self.context_encoder(*context)
-        question, _ = self.context_encoder(*question)
+        if seq_len > 512:
+            n = seq_len // 512
+            a,b,c = question
+            temp_question = None
+            for i in range(n):
+                _a, _b, _c = a[:,i*512:(i+1)*512], b[:,i*512:(i+1)*512], c[:,i*512:(i+1)*512]
+                _question, _ = self.context_encoder(_a, _b, _c )
+                if i:
+                    temp_question += _question
+                else:
+                    temp_question = _question
+            question = temp_question
+        else:
+            question, _ = self.context_encoder(*question)
 
         # context = context[-1]
         # question = question[-1]
