@@ -1,9 +1,9 @@
-from model.qa.qa import Model, ModelL, ModelS, ModelX, ModelXC
+from model.qa.qa import Model, ModelL, ModelLC, ModelX, ModelXC
 
 model_list = {
     "Model": Model,
     "ModelL": ModelL,
-    "ModelS": ModelS,
+    "ModelLC": ModelLC,
     "ModelX": ModelX,
     "ModelXC": ModelXC
 }
