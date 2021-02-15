@@ -30,7 +30,7 @@ class BertWordFormatter:
             tokens = tokens[:max_seq_len]
         #ids = self._convert_sentence_pair_to_bert_dataset([tokens], max_seq_len)
         if len(tokens) < max_seq_len:
-            tokens = tokens + (['PAD'] * (max_seq_len - len(tokens)))
+            tokens = tokens + (['[PAD]'] * (max_seq_len - len(tokens)))
         return tokens
 
     def _convert_sentence_pair_to_bert_dataset(

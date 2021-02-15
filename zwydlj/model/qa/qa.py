@@ -109,16 +109,17 @@ class ModelX(nn.Module):
         if seq_len > 512:
             n = seq_len // 512
             a,b,c = question
-            temp_question = None
+            temp_question = []
             for i in range(n):
                 _a, _b, _c = a[:,i*512:(i+1)*512], b[:,i*512:(i+1)*512], c[:,i*512:(i+1)*512]
-                if torch.any(_b.bool()):
-                    _question, _ = self.context_encoder(_a, _b, _c)
-                    if i:
-                        temp_question += _question
-                    else:
-                        temp_question = _question
-            question = temp_question
+                # if torch.any(_b.bool()):
+                _question, _ = self.context_encoder(_a, _b, _c)
+                temp_question.append(_question)
+                    # if i:
+                    #     temp_question += _question
+                    # else:
+                    #     temp_question = _question
+            question = torch.cat(temp_question, dim=1)
         else:
             question, _ = self.context_encoder(*question)
 
