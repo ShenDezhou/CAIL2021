@@ -8,8 +8,8 @@ class BertEncoder(nn.Module):
         super(BertEncoder, self).__init__()
         self.bert = BertModel.from_pretrained(config.get("model", "bert_path"))
         self.max_seq_len = config.getint("model", "max_seq_len")
-        for param in self.bert.parameters():
-            param.requires_grad = True
+        # for param in self.bert.parameters():
+        #     param.requires_grad = True
 
     def forward(self, all_input_ids, all_input_mask, all_segment_ids):
         if torch.cuda.is_available():
