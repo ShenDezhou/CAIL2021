@@ -86,8 +86,10 @@ class ModelX(nn.Module):
 
         self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
         #self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
+        self.context_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        self.question_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
 
-        # self.attention = Attention(config, gpu_list, *args, **params)
+        self.attention = Attention(config, gpu_list, *args, **params)
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
 
@@ -126,12 +128,16 @@ class ModelX(nn.Module):
         # question = question[-1]
         context = context.view(batch, -1, self.hidden_size)
         question = question.view(batch, -1, self.hidden_size)
+        _, context = self.context_rnn_encoder(context)
+        _, question = self.question_rnn_encoder(question)
 
-        # c, q, a = self.attention(context, question)
-        c, q = context, question
+
+        c, q, a = self.attention(context, question)
+        # c, q = context, question
         c = torch.mean(c, dim=1)
         q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
+        y = y.view(batch, -1)
         y = self.dropout(y)
         y = self.rank_module(y)
 
