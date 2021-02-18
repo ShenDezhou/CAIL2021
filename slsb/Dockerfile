@@ -1,8 +1,8 @@
-FROM machinelearning:1.0
+FROM machinelearning:2.0
 USER root
 
-COPY ./requirements.txt /workspace/Freeze.txt
-RUN  pip3 install -r /workspace/Freeze.txt -i https://mirrors.aliyun.com/pypi/simple/
+COPY ./Freeze.txt /workspace/Freeze.txt
+RUN  pip3 install -r /workspace/Freeze.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 RUN rm -rf /workspace/*
 COPY . /workspace

@@ -7,6 +7,6 @@ services:
     container_name: xlnet_named_entity_recognition
     volumes:
     - /mnt/data/slsbdocker/model:/workspace/model
-    - /mnt/data/slsbdocker/log:/workspace/data
+    - /mnt/data/slsbdocker/log:/workspace/log
     - /mnt/data/xlnet_base:/workspace/xlnet_base
     command: python3 torch_server.py -p 58061 -c config/bert_config-xl.json

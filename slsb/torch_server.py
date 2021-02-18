@@ -156,7 +156,7 @@ class TorchResource:
         for i,line in enumerate(lines):
             rows.append({"id":i, 'text': line})
 
-        filename = "data/{}.json".format(time.time())
+        filename = "log/{}.json".format(time.time())
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(rows, f, ensure_ascii=False, indent=2)
         test_set, sc_list, label_list = self.data.load_file(filename, train=False)

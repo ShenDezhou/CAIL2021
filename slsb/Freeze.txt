@@ -8,3 +8,4 @@ pytorch_pretrained_bert==0.6.2
 ujson
 tensorboardX==2.0
 fire==0.3.1
+waitress
