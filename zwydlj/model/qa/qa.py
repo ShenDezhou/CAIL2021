@@ -29,6 +29,7 @@ class Model(nn.Module):
         self.rank_module = nn.Linear(self.hidden_size * 2, 4)
 
         self.criterion = nn.CrossEntropyLoss()
+        self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
         # self.multi_module = nn.Linear(4, 4)
         self.accuracy_function = single_label_top1_accuracy
