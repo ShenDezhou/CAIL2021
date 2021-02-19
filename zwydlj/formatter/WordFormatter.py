@@ -2,7 +2,7 @@ import json
 import torch
 import numpy as np
 import lawa
-
+import lawrouge
 
 class WordFormatter:
     def __init__(self, config, mode):
@@ -11,6 +11,7 @@ class WordFormatter:
 
         self.word2id = json.load(open(config.get("data", "word2id"), "r", encoding="utf8"))
         self.cut = lawa.cut
+        self.rouge = lawrouge.Rouge(exclusive=True)
 
     def convert_tokens_to_ids(self, tokens):
         arr = []
@@ -33,8 +34,13 @@ class WordFormatter:
             ids = ids + ([0] * (max_seq_len - len(ids)))
         return ids
 
+    def score(self, option, context, type='p'):
+        scores = self.rouge.get_scores([option]*len(context), context, avg=2, ignore_empty=True)
+        return scores[type]
+
     def process(self, data, config, mode, *args, **params):
         context = []
+        context_score = []
         question = []
         label = []
         idx = []
@@ -50,21 +56,27 @@ class WordFormatter:
                     label.append(label_x)
 
                 temp_context = []
+                temp_context_score = []
                 temp_question = []
                 q_text = _question['Question']
                 temp_question.append(self.convert(content+q_text, self.max_question_len, trucate_head=True))
                 for choice in _question["Choices"]:
                     temp_context.append(self.convert(choice, self.max_option_len))
+                    content_lines = content.split('。')[-5:]
+                    temp_context_score.append(self.score(choice, content_lines))
                 for _ in range(4 - len(_question["Choices"])):
                     temp_context.append(self.convert("", self.max_option_len))
+                    temp_context_score.append(0)
 
                 context.append(temp_context)
                 question.append(temp_question)
+                context_score.append(temp_context_score)
 
         question = torch.LongTensor(question)
         context = torch.LongTensor(context)
+        context_score = torch.FloatTensor(context_score)
         if mode != "test":
             label = torch.LongTensor(np.array(label, dtype=np.int32))
-            return {"context": context, "question": question, 'label': label, "id": idx}
+            return {"context": context, "context_score": context_score, "question": question, 'label': label, "id": idx}
         else:
-            return {"context": context, "question": question, "id": idx}
+            return {"context": context, "context_score": context_score, "question": question, "id": idx}

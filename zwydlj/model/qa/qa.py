@@ -31,7 +31,7 @@ class Model(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
-        # self.multi_module = nn.Linear(4, 4)
+        self.rouge_module = nn.Linear(4*2, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
@@ -39,12 +39,14 @@ class Model(nn.Module):
 
     def forward(self, data, config, gpu_list, acc_result, mode):
         context = data["context"]
+        context_score = data["context_score"]
         question = data["question"]
 
         batch = question.size()[0]
         option = question.size()[1]
 
         context = context.view(batch * option, -1)
+        context_score = context_score.view(batch * option, -1)
         question = question.view(batch * option, -1)
         context = self.embedding(context)
         question = self.embedding(question)
@@ -63,9 +65,10 @@ class Model(nn.Module):
         y = self.dropout(y)
         y = self.rank_module(y)
 
+        y = torch.cat([y, context_score], dim=1)
         # y = y.reshape(batch, option)
         #
-        # y = self.multi_module(y)
+        y = self.rouge_module(y)
 
         if mode != "test":
             label = data["label"]
