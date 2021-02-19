@@ -1,0 +1,11 @@
+services:
+  web:
+    image: dogclassification:1.0
+    environment:
+      - gpus=all
+    network_mode: "host"
+    container_name: dog_fl
+    volumes:
+    - /mnt/data/dogfldocker/:/workspace/data
+    - /mnt/data/dogflb/model:/workspace/model
+    command: python3

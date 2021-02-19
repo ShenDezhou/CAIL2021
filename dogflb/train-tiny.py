@@ -49,7 +49,7 @@ def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
         best_acc = acc
         model.save(save_path)
     print ('Test in epoch', epoch, 'Accuracy is', acc, 'Best accuracy is', best_acc)
-
+#python train-tiny.py --epochs 5 --batch_size 32 --dataroot /mnt/data/dogfldocker --model_path model/res50/model.bin --resume False
 def main():
 
     parser = argparse.ArgumentParser()
@@ -66,6 +66,8 @@ def main():
     parser.add_argument('--dataroot', type=str, default='/content/drive/MyDrive/dogflg/data2/')
     parser.add_argument('--model_path', type=str, default='./best_model.bin')
 
+    parser.add_argument('--sampleratio', type=float, default=0.8)
+
     args = parser.parse_args()
     
     transform_train = transform.Compose([
@@ -77,7 +79,7 @@ def main():
     ])
 
     root_dir = args.dataroot
-    train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True, transform=transform_train)
+    train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True, transform=transform_train, sample_rate=args.sampleratio)
 
     transform_test = transform.Compose([
         transform.Resize((128, 128)),
@@ -85,7 +87,7 @@ def main():
         transform.ToTensor(),
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test)
+    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test, sample_rate=0)
 
     epochs = args.epochs
     model = Net(num_classes=args.num_classes)

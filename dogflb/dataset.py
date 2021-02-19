@@ -1,4 +1,5 @@
 import os
+import random
 
 import jittor as jt 
 
@@ -10,7 +11,7 @@ from PIL import Image
 
 
 class TsinghuaDog(Dataset):
-    def __init__(self, root_dir, batch_size, part='train', train=False, shuffle=False, transform=None, num_workers=1):
+    def __init__(self, root_dir, batch_size, part='train', train=False, shuffle=False, transform=None, num_workers=1, sample_rate=0):
         super().__init__()
         self.root_dir = root_dir
         self.batch_size = batch_size 
@@ -38,6 +39,12 @@ class TsinghuaDog(Dataset):
                 self.image_list.append(img_name)
                 self.id_list.append(label)
                 line = f.readline()
+
+        if sample_rate > 0:
+            tot = len(self.image_list)
+            indice = random.sample(range(tot), int(tot * sample_rate))
+            self.image_list = [self.image_list[i] for i in indice]
+            self.id_list = [self.id_list[i] for i in indice]
 
         self.set_attrs(
             batch_size=self.batch_size,
