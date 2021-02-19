@@ -5,7 +5,7 @@ from jittor import transform
 from jittor.optim import Adam, SGD
 from tqdm import tqdm
 import numpy as np
-from model import Net
+from model import Net, NetA
 import argparse 
 
 
@@ -87,7 +87,7 @@ def main():
         transform.ToTensor(),
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test, sample_rate=0)
+    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test, sample_rate=args.sampleratio)
 
     epochs = args.epochs
     model = Net(num_classes=args.num_classes)
