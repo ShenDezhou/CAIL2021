@@ -1,3 +1,5 @@
+import argparse
+
 import joblib
 import lawa
 import pandas as pd
@@ -5,7 +7,15 @@ from gensim.models import ldamulticore, ldamodel, CoherenceModel
 from gensim import corpora
 from sys import platform
 
-positive = pd.read_csv('data/train.csv', encoding='utf-8')
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    '-c', '--data_file', default='data/train.csv',
+    help='model config file')
+args = parser.parse_args()
+
+
+positive = pd.read_csv(args.data_file, encoding='utf-8')
 # negtive = pd.read_excel(r'C:\Users\Administrator\Desktop\python\项目\爬虫\京东评论\com_neg.xls',encoding = 'utf-8')
 # 文本去重(文本去重主要是一些系统自动默认好评的那些评论 )
 # positive = positive['content'].drop_duplicates()
@@ -16,9 +26,9 @@ type1 = positive['type1'].drop_duplicates()
 print('类型:', len(type1), type1.tolist())
 
 
-positive = positive.head(10)
+# positive = positive.head(10)
 # 文本分词
-mycut = lambda s: ' '.join(lawa.lcut(s))  # 自定义分词函数
+mycut = lambda s: ' '.join(lawa.lcut(str(s)))  # 自定义分词函数
 po = positive.content.apply(mycut)
 
 # ne =negtive.comment.apply(mycut)

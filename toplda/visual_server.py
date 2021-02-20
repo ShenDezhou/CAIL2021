@@ -7,6 +7,9 @@ from gensim.models import ldamodel
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    '-i', '--ip', default="0.0.0.0",
+    help='falcon server ip')
+parser.add_argument(
     '-p', '--port', default=58063,
     help='falcon server port')
 parser.add_argument(
@@ -22,4 +25,4 @@ if __name__=="__main__":
     vis = pyLDAvis.gensim.prepare(pos_lda, pos_corpus, pos_dict)
     # pyLDAvis==2.1.2
     # 在浏览器中心打开一个界面
-    pyLDAvis.show(vis, ip="0.0.0.0", port=args.port)
+    pyLDAvis.show(vis, ip=args.ip, port=int(args.port))
