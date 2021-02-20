@@ -1,4 +1,6 @@
-import jittor as jt 
+import os
+
+import jittor as jt
 import jittor.nn as nn 
 from dataset import TsinghuaDog
 from jittor import transform
@@ -11,6 +13,19 @@ import argparse
 
 
 jt.flags.use_cuda=1
+
+def get_path(path):
+    """Create the path if it does not exist.
+
+    Args:
+        path: path to be used
+
+    Returns:
+        Existed path
+    """
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    return path
 
 def train(model, train_loader, optimizer, epoch):
     model.train() 
@@ -47,6 +62,7 @@ def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
     acc = total_acc / total_num 
     if acc > best_acc:
         best_acc = acc
+        get_path(save_path)
         model.save(save_path)
     print ('Test in epoch', epoch, 'Accuracy is', acc, 'Best accuracy is', best_acc)
 #python train-tiny.py --epochs 5 --batch_size 32 --dataroot /mnt/data/dogfldocker --model_path model/res50/model.bin --resume False
