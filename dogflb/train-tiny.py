@@ -5,7 +5,7 @@ from jittor import transform
 from jittor.optim import Adam, SGD
 from tqdm import tqdm
 import numpy as np
-from model import Net, NetA
+from model import Net
 import argparse 
 
 
@@ -53,7 +53,7 @@ def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--num_classes', type=int, default=130)
 
@@ -71,21 +71,23 @@ def main():
     args = parser.parse_args()
     
     transform_train = transform.Compose([
-        transform.Resize((128, 128)),
-        transform.RandomCrop(112),
+        transform.Resize((256, 256)),
+        transform.CenterCrop(224),
         transform.RandomHorizontalFlip(),
         transform.ToTensor(),
-        transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        transform.ImageNormalize(0.485, 0.229),
+        # transform.ImageNormalize(0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
     root_dir = args.dataroot
     train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True, transform=transform_train, sample_rate=args.sampleratio)
 
     transform_test = transform.Compose([
-        transform.Resize((128, 128)),
-        transform.RandomCrop(112),
+        transform.Resize((256, 256)),
+        transform.CenterCrop(224),
         transform.ToTensor(),
-        transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        transform.ImageNormalize(0.485, 0.229),
+        # transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
     val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test, sample_rate=args.sampleratio)
 
@@ -93,9 +95,11 @@ def main():
     model = Net(num_classes=args.num_classes)
     lr = args.lr
     weight_decay = args.weight_decay
-    optimizer = SGD(model.parameters(), lr=lr, momentum=0.9) 
+    optimizer = SGD(model.parameters(), lr=lr, momentum=0.99)
     if args.resume:
         model.load(args.model_path)
+        print('model loaded', args.model_path)
+
     #random save for test
     #model.save(args.model_path)
     if args.eval:

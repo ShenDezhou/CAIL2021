@@ -89,10 +89,10 @@ def main():
     root_dir = args.dataroot
 
     transform_test = transform.Compose([
-        transform.Resize((128, 128)),
-        transform.RandomCrop(112),
+        transform.Resize((256, 256)),
+        transform.CenterCrop(224),
         transform.ToTensor(),
-        transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        transform.ImageNormalize(0.485, 0.229)
     ])
 
     _, _, name_list = os.walk(root_dir)
