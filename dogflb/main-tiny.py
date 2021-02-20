@@ -92,10 +92,12 @@ def main():
         transform.Resize((256, 256)),
         transform.CenterCrop(224),
         transform.ToTensor(),
-        transform.ImageNormalize(0.485, 0.229)
+        transform.ImageNormalize(0.485, 0.229),
     ])
 
-    _, _, name_list = os.walk(root_dir)
+    name_list = []
+    for _, _, _name_list in os.walk(root_dir):
+        name_list = _name_list
     val_loader = TsinghuaDogExam(root_dir, batch_size=args.batch_size, train=False, name_list=name_list, shuffle=False, transform=transform_test)
 
     model = Net(num_classes=args.num_classes)

@@ -103,11 +103,11 @@ def main():
     # random save for test
     # model.save(args.model_path)
     if args.eval:
-        evaluate(model, val_loader)
+        evaluate(model, val_loader, save_path=args.model_path)
         return
     for epoch in range(epochs):
         train(model, train_loader, optimizer, epoch)
-        evaluate(model, val_loader, epoch)
+        evaluate(model, val_loader, epoch, save_path=args.model_path)
 
 
 if __name__ == '__main__':

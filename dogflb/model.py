@@ -14,10 +14,10 @@ class Net1(nn.Module):
 
 class Net(nn.Module):
     def __init__(self, num_classes):
-        self.base_net = alexnet(pretrained=True, num_classes=num_classes)
-        # self.fc = nn.Linear(1000, num_classes)
+        self.base_net = alexnet(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):
         x = self.base_net(x)
-        # x = self.fc(x)
+        x = self.fc(x)
         return x
