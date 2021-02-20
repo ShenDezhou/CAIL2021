@@ -1,19 +1,18 @@
-import jittor as jt 
-import jittor.nn as nn 
+import jittor as jt
+import jittor.nn as nn
 from dataset import TsinghuaDog
 from jittor import transform
 from jittor.optim import Adam, SGD
 from tqdm import tqdm
 import numpy as np
-from model import Net
-import argparse 
+from model import Net, NetA
+import argparse
 
+jt.flags.use_cuda = 1
 
-
-jt.flags.use_cuda=1
 
 def train(model, train_loader, optimizer, epoch):
-    model.train() 
+    model.train()
     total_acc = 0
     total_num = 0
     losses = 0.0
@@ -21,16 +20,18 @@ def train(model, train_loader, optimizer, epoch):
     for images, labels in pbar:
         output = model(images)
         loss = nn.cross_entropy_loss(output, labels)
-        optimizer.step(loss) 
+        optimizer.step(loss)
         pred = np.argmax(output.data, axis=1)
-        acc = np.mean(pred == labels.data) * 100 
+        acc = np.mean(pred == labels.data) * 100
         total_acc += acc
-        total_num += labels.shape[0] 
+        total_num += labels.shape[0]
         losses += loss
         pbar.set_description(f'Epoch {epoch} [TRAIN] loss = {loss.data[0]:.2f}, acc = {acc:.2f}')
 
 
 best_acc = -1.0
+
+
 def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
     model.eval()
     global best_acc
@@ -44,14 +45,15 @@ def evaluate(model, val_loader, epoch=0, save_path='./best_model.bin'):
         total_acc += acc
         total_num += labels.shape[0]
         pbar.set_description(f'Epoch {epoch} [EVAL] acc = {total_acc / total_num :.2f}')
-    acc = total_acc / total_num 
+    acc = total_acc / total_num
     if acc > best_acc:
         best_acc = acc
         model.save(save_path)
-    print ('Test in epoch', epoch, 'Accuracy is', acc, 'Best accuracy is', best_acc)
+    print('Test in epoch', epoch, 'Accuracy is', acc, 'Best accuracy is', best_acc)
 
+
+# python train-tiny.py --epochs 5 --batch_size 32 --dataroot /mnt/data/dogfldocker --model_path model/res50/model.bin --resume False
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--epochs', type=int, default=50)
@@ -66,8 +68,10 @@ def main():
     parser.add_argument('--dataroot', type=str, default='/content/drive/MyDrive/dogflg/data2/')
     parser.add_argument('--model_path', type=str, default='./best_model.bin')
 
+    parser.add_argument('--sampleratio', type=float, default=0.8)
+
     args = parser.parse_args()
-    
+
     transform_train = transform.Compose([
         transform.Resize((512, 512)),
         transform.RandomCrop(448),
@@ -77,28 +81,30 @@ def main():
     ])
 
     root_dir = args.dataroot
-    train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True, transform=transform_train)
+    train_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=True, part='train', shuffle=True,
+                               transform=transform_train, sample_rate=args.sampleratio)
 
     transform_test = transform.Compose([
         transform.Resize((512, 512)),
-        transform.CenterCrop(448),
+        transform.RandomCrop(448),
         transform.ToTensor(),
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
-    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False, transform=transform_test)
+    val_loader = TsinghuaDog(root_dir, batch_size=args.batch_size, train=False, part='val', shuffle=False,
+                             transform=transform_test, sample_rate=args.sampleratio)
 
     epochs = args.epochs
     model = Net(num_classes=args.num_classes)
     lr = args.lr
     weight_decay = args.weight_decay
-    optimizer = SGD(model.parameters(), lr=lr, momentum=0.9) 
+    optimizer = SGD(model.parameters(), lr=lr, momentum=0.9)
     if args.resume:
         model.load(args.model_path)
-    #random save for test
-    #model.save(args.model_path)
+    # random save for test
+    # model.save(args.model_path)
     if args.eval:
         evaluate(model, val_loader)
-        return 
+        return
     for epoch in range(epochs):
         train(model, train_loader, optimizer, epoch)
         evaluate(model, val_loader, epoch)

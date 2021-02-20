@@ -78,17 +78,22 @@ class TsinghuaDogExam(Dataset):
         self.transform = transform
 
         if name_list:
-            line = name_list
+            for line in name_list:
+                line = line.strip()
+                # img_name = line.split('/')[-2] + '/' + line.split('/')[-1]
+                # cls_name = line.split('/')[-2]
+                # label = int(cls_name.split('-')[1][-3:]) - 1
+                self.image_list.append(line)
+                self.id_list.append(0)
         else:
-            _, _, name_list = os.walk(root_dir)
-
-        for line in name_list:
-            line = line.strip()
-            # img_name = line.split('/')[-2] + '/' + line.split('/')[-1]
-            # cls_name = line.split('/')[-2]
-            # label = int(cls_name.split('-')[1][-3:]) - 1
-            self.image_list.append(line)
-            self.id_list.append(0)
+            for _, _, name_list in os.walk(root_dir):
+                for line in name_list:
+                    line = line.strip()
+                    # img_name = line.split('/')[-2] + '/' + line.split('/')[-1]
+                    # cls_name = line.split('/')[-2]
+                    # label = int(cls_name.split('-')[1][-3:]) - 1
+                    self.image_list.append(line)
+                    self.id_list.append(0)
 
         self.set_attrs(
             batch_size=self.batch_size,

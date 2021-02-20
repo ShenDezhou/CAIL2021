@@ -95,12 +95,15 @@ def main():
         transform.ImageNormalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
-    _, _, name_list = os.walk(root_dir)
+    name_list = []
+    for _, _, _name_list in os.walk(root_dir):
+        name_list = _name_list
     val_loader = TsinghuaDogExam(root_dir, batch_size=args.batch_size, train=False, name_list=name_list, shuffle=False, transform=transform_test)
 
     model = Net(num_classes=args.num_classes)
     if args.resume:
         model.load(args.model_path)
+        print('model loaded', args.model_path)
 
 
     top5_class_list = evaluate(model, val_loader)
