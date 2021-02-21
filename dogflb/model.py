@@ -1,4 +1,4 @@
-from jittor.models import Resnet50, alexnet,googlenet
+from jittor.models import Resnet50, alexnet,googlenet,densenet121,inception_v3,mnasnet0_5,mobilenet_v2
 import jittor.nn as nn 
 
 class Net1(nn.Module):
@@ -22,9 +22,50 @@ class Net2(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net3(nn.Module):
     def __init__(self, num_classes):
         self.base_net = googlenet(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+
+class Net4(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = densenet121(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net5(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = inception_v3(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net6(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = mnasnet0_5(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = mobilenet_v2(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):
