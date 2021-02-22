@@ -7,7 +7,7 @@ from jittor import transform
 from jittor.optim import Adam, SGD
 from tqdm import tqdm
 import numpy as np
-from model import Net, NetA
+from model import Net
 import argparse
 
 jt.flags.use_cuda = 1
