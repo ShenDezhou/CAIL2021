@@ -4,11 +4,13 @@ import numpy as np
 import os
 #from pytorch_pretrained_bert import BertTokenizer
 from transformers import BertTokenizer
+import re
 
 class BertWordFormatter:
     def __init__(self, config, mode):
         self.max_question_len = config.getint("data", "max_question_len")
         self.max_option_len = config.getint("data", "max_option_len")
+        self.reg = re.compile("[错误|不正确]")
 
         self.tokenizer = BertTokenizer.from_pretrained(config.get("model", "bert_path"))
 
@@ -70,6 +72,7 @@ class BertWordFormatter:
                 all_input_ids.append(input_ids)
                 all_input_mask.append(input_mask)
                 all_segment_ids.append(segment_ids)
+
         all_input_ids = torch.tensor(all_input_ids, dtype=torch.long)
         all_input_mask = torch.tensor(all_input_mask, dtype=torch.long)
         all_segment_ids = torch.tensor(all_segment_ids, dtype=torch.long)
@@ -80,6 +83,8 @@ class BertWordFormatter:
     def process(self, data, config, mode, *args, **params):
         context = []
         question = []
+        context_inverse = []
+
         label = []
         idx = []
 
@@ -96,6 +101,13 @@ class BertWordFormatter:
                 temp_context = []
                 temp_question = []
                 q_text = _question['Question']
+
+                temp_context_inverse = []
+                if re.search(self.reg, q_text):
+                    temp_context_inverse.append(0)
+                else:
+                    temp_context_inverse.append(1)
+
                 temp_question.append(self.convert(content + q_text, self.max_question_len, trucate_head=True))
                 for choice in _question["Choices"]:
                     temp_context.append(self.convert(choice, self.max_option_len))
@@ -104,11 +116,13 @@ class BertWordFormatter:
 
                 context.append(temp_context)
                 question.append(temp_question)
+                context_inverse.append(temp_context_inverse)
 
         question = self._convert_sentence_pair_to_bert_dataset(question, self.max_question_len)
         context = self._convert_sentence_pair_to_bert_dataset(context, self.max_option_len)
+        context_inverse = torch.FloatTensor(context_inverse)
         if mode != "test":
             label = torch.LongTensor(np.array(label, dtype=np.int))
-            return {"context": context, "question": question, 'label': label, "id": idx}
+            return {"context": context, "question": question, 'label': label,"if_positive": context_inverse, "id": idx}
         else:
-            return {"context": context, "question": question, "id": idx}
+            return {"context": context, "question": question,"if_positive": context_inverse, "id": idx}

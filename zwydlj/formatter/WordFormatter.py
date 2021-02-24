@@ -62,7 +62,7 @@ class WordFormatter:
                 temp_context_inverse = []
                 temp_question = []
                 q_text = _question['Question']
-                temp_question.append(self.convert(content+q_text, self.max_question_len, trucate_head=True))
+                temp_question.append(self.convert(q_text+content, self.max_question_len, trucate_head=False))
 
                 if re.search(self.reg, q_text):
                     temp_context_inverse.append(0)

@@ -25,8 +25,8 @@ class Model(nn.Module):
             self.word_num += 1
 
         self.embedding = nn.Embedding(self.word_num, self.hidden_size)
-        # self.context_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-        # self.question_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        self.context_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        self.question_encoder = LSTMEncoder(config, gpu_list, *args, **params)
         # self.attention = Attention(config, gpu_list, *args, **params)
         self.resnet = resnet50(pretrained=True)
         # self.seresnet = seresnet50(pretrained=True)
@@ -58,15 +58,15 @@ class Model(nn.Module):
         context = self.embedding(context)
         question = self.embedding(question)
 
-        # _, context = self.context_encoder(context)
-        # _, question = self.question_encoder(question)
+        c, context = self.context_encoder(context)
+        q, question = self.question_encoder(question)
 
         # c, q, a = self.attention(context, question)
         # # c = torch.max(c, dim=1)[0]
         # # q = torch.max(q, dim=1)[0]
         # c = torch.mean(c, dim=1)
         # q = torch.mean(q, dim=1)
-        c, q = context, question
+        #c, q = context, question
         # c = torch.mean(c, dim=1)
         # q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
@@ -105,8 +105,8 @@ class ModelX(nn.Module):
         self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
         # self.context_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
         # self.question_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-        # self.resnet = resnet50(pretrained=True)
-        self.seresnet = seresnet50(pretrained=True)
+        self.resnet = resnet50(pretrained=True)
+        # self.seresnet = seresnet50(pretrained=True)
         # self.densenet = densenet121(pretrained=True)
         # self.attention = Attention(config, gpu_list, *args, **params)
         # self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
@@ -114,8 +114,9 @@ class ModelX(nn.Module):
 
         self.bce = nn.CrossEntropyLoss(reduction='sum')
         # self.gelu = nn.GELU()
-        # self.softmax = nn.Softmax(dim=1)
-        self.rank_module = nn.Linear(1000, 4)
+        self.softmax = nn.Softmax(dim=1)
+        self.res_module = nn.Linear(1000, 16)
+        self.fc_module = nn.Linear(16 + 1, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
@@ -124,6 +125,8 @@ class ModelX(nn.Module):
     def forward(self, data, config, gpu_list, acc_result, mode):
         context = data["context"]
         question = data["question"]
+        if_positive = data["if_positive"]
+
         batch = question[0].size()[0]
         seq_len = question[0].size()[1]
         context, _ = self.context_encoder(*context)
@@ -153,10 +156,14 @@ class ModelX(nn.Module):
         y = torch.cat([c, q], dim=1)
         y = y.view(batch, -1, 3, self.hidden_size // 3)
         y = y.transpose(1,2)
-        y = self.seresnet(y)
         # y = y.view(batch, -1)
-        #y = self.dropout(y)
-        y = self.rank_module(y)
+        # y = torch.cat([y_re, if_positive, y_de], dim=1)
+        y = self.resnet(y)
+        # y = self.dropout(y)
+        y = self.res_module(y)
+        y = torch.cat([y, if_positive], dim=1)
+        y = self.fc_module(y)
+        y = self.softmax(y)
 
 
 
