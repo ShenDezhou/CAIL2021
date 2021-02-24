@@ -25,16 +25,20 @@ class Model(nn.Module):
             self.word_num += 1
 
         self.embedding = nn.Embedding(self.word_num, self.hidden_size)
-        self.context_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-        self.question_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-        self.attention = Attention(config, gpu_list, *args, **params)
+        # self.context_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        # self.question_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        # self.attention = Attention(config, gpu_list, *args, **params)
+        self.resnet = resnet50(pretrained=True)
+        # self.seresnet = seresnet50(pretrained=True)
+        # self.densenet = densenet121(pretrained=True)
 
-        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
+        self.res_module = nn.Linear(1000, 16)
+        self.fc_module = nn.Linear(16 + 1, 4)
 
         self.criterion = nn.CrossEntropyLoss()
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
-
-        self.rouge_module = nn.Linear(4*2, 4)
+        self.softmax = nn.Softmax(dim=1)
+        # self.rouge_module = nn.Linear(1000, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
@@ -42,36 +46,42 @@ class Model(nn.Module):
 
     def forward(self, data, config, gpu_list, acc_result, mode):
         context = data["context"]
-        context_score = data["context_score"]
+        if_positive = data["if_positive"]
         question = data["question"]
 
         batch = question.size()[0]
         option = question.size()[1]
 
         context = context.view(batch * option, -1)
-        context_score = context_score.view(batch * option, -1)
+        # context_score = context_score.view(batch * option, -1)
         question = question.view(batch * option, -1)
         context = self.embedding(context)
         question = self.embedding(question)
 
-        _, context = self.context_encoder(context)
-        _, question = self.question_encoder(question)
+        # _, context = self.context_encoder(context)
+        # _, question = self.question_encoder(question)
 
-        c, q, a = self.attention(context, question)
-        # c = torch.max(c, dim=1)[0]
-        # q = torch.max(q, dim=1)[0]
-        c = torch.mean(c, dim=1)
-        q = torch.mean(q, dim=1)
+        # c, q, a = self.attention(context, question)
+        # # c = torch.max(c, dim=1)[0]
+        # # q = torch.max(q, dim=1)[0]
+        # c = torch.mean(c, dim=1)
+        # q = torch.mean(q, dim=1)
+        c, q = context, question
+        # c = torch.mean(c, dim=1)
+        # q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
+        y = y.view(batch, -1, 3, self.hidden_size // 3)
+        y = y.transpose(1,2)
+        # y_se = self.seresnet(y)
+        y = self.resnet(y)
+        # y_de = self.densenet(y)
 
-        y = y.view(batch * option, -1)
+        # y = torch.cat([y_re, if_positive, y_de], dim=1)
         y = self.dropout(y)
-        y = self.rank_module(y)
-
-        y = torch.cat([y, context_score], dim=1)
-        # y = y.reshape(batch, option)
-        #
-        y = self.rouge_module(y)
+        y = self.res_module(y)
+        y = torch.cat([y, if_positive], dim=1)
+        y = self.fc_module(y)
+        y = self.softmax(y)
 
         if mode != "test":
             label = data["label"]
@@ -92,7 +102,7 @@ class ModelX(nn.Module):
         self.question_len = config.getint("data", "max_question_len")
 
         self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
-        #self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
+        self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
         # self.context_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
         # self.question_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
         # self.resnet = resnet50(pretrained=True)
@@ -102,7 +112,7 @@ class ModelX(nn.Module):
         # self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
 
-        self.bce = nn.CrossEntropyLoss(reduction='mean')
+        self.bce = nn.CrossEntropyLoss(reduction='sum')
         # self.gelu = nn.GELU()
         # self.softmax = nn.Softmax(dim=1)
         self.rank_module = nn.Linear(1000, 4)
@@ -125,14 +135,14 @@ class ModelX(nn.Module):
             for i in range(n):
                 _a, _b, _c = a[:,i*window:(i+1)*window], b[:, i*window:(i+1)*window], c[:, i*window:(i+1)*window]
                 if torch.any(_b.bool()):
-                    _question, _ = self.context_encoder(_a, _b, _c)
+                    _question, _ = self.question_encoder(_a, _b, _c)
                     if i:
                         temp_question += _question
                     else:
                         temp_question = _question
             question = temp_question
         else:
-            question, _ = self.context_encoder(*question)
+            question, _ = self.question_encoder(*question)
 
         question = question.view(batch, -1, self.hidden_size)
         context = context.view(batch, -1, self.hidden_size)
@@ -147,6 +157,7 @@ class ModelX(nn.Module):
         # y = y.view(batch, -1)
         #y = self.dropout(y)
         y = self.rank_module(y)
+
 
 
         if mode != "test":
@@ -283,15 +294,16 @@ class ModelL(nn.Module):
         # self.question_encoder = XLNetEncoder(config, gpu_list, *args, **params)
         # for param in self.question_encoder.parameters():
         #     param.requires_grad = True
+        self.seresnet = seresnet50(pretrained=True)
 
         self.attention = Attention(config, gpu_list, *args, **params)
         self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
 
-        self.bce = nn.CrossEntropyLoss(reduction='mean')
+        self.bce = nn.CrossEntropyLoss(reduction='sum')
         # self.gelu = nn.GELU()
         # self.softmax = nn.Softmax(dim=1)
-        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
+        self.rank_module = nn.Linear(1000, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
@@ -323,11 +335,15 @@ class ModelL(nn.Module):
         context = context.view(batch, -1, self.hidden_size)
         question = question.view(batch, -1, self.hidden_size)
 
-        c, q, _ = self.attention(context, question)
-        c = torch.mean(c, dim=1)
-        q = torch.mean(q, dim=1)
+        c, q = context, question
+        # c = torch.mean(c, dim=1)
+        # q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
-        y = self.dropout(y)
+        y = y.view(batch, -1, 3, self.hidden_size // 3)
+        y = y.transpose(1,2)
+        y = self.seresnet(y)
+        # y = y.view(batch, -1)
+        #y = self.dropout(y)
         y = self.rank_module(y)
 
 

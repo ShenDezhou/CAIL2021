@@ -12,6 +12,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '-c', '--data_file', default='data/train.csv',
     help='model config file')
+parser.add_argument(
+    '-m', '--model_file', default='model/finmodel',
+    help='model config file')
 args = parser.parse_args()
 
 
@@ -26,7 +29,7 @@ type1 = positive['type1'].drop_duplicates()
 print('类型:', len(type1), type1.tolist())
 
 
-# positive = positive.head(10)
+#positive = positive.head(10)
 # 文本分词
 mycut = lambda s: ' '.join(lawa.lcut(str(s)))  # 自定义分词函数
 po = positive.content.apply(mycut)
@@ -64,6 +67,8 @@ po = po.apply(lambda s: s.split(' '))  # 将分词后的文本以空格切割
 # 正面主题分析
 pos_dict = corpora.Dictionary(po)
 pos_corpus = [pos_dict.doc2bow(i) for i in po]
+joblib.dump(pos_dict, args.model_file +".dic")
+joblib.dump(pos_corpus, args.model_file +".cps")
 # pos_lda = ldamulticore.LdaMulticore(pos_corpus,num_topics= 3,id2word =pos_dict, workers=1)
 score_dic = {}
 lda_modes = []
@@ -85,9 +90,9 @@ print(Keymax)
 best_top_n = Keymax * 5
 pos_lda = lda_modes[Keymax - 1]
 
-joblib.dump(pos_dict, "model/finmodel.dic", compress=3)
-joblib.dump(pos_corpus, "model/finmodel.cps", compress=3)
-pos_lda.save("model/finmodel.bin")
+# joblib.dump(pos_dict, "model/finmodel.dic")
+# joblib.dump(pos_corpus, "model/finmodel.cps")
+pos_lda.save(args.model_file + ".bin")
 
 # 展示主题
 # pos_theme = pos_lda.show_topics()

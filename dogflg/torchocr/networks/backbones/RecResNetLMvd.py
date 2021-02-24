@@ -262,10 +262,10 @@ class ResBertNet(nn.Module):
         offset = (pixels - self.max_seq_len) // 2
         device = x.device
         x = x.view(batch_size, channel, -1).long()
-        x1 = torch.mul(x[:, 0, :self.max_seq_len], 64)
-        x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
+        x1 = torch.mul(x[:, 0, :self.max_seq_len], 128)
+        # x2 = torch.mul(x[:, 1, offset :offset+self.max_seq_len], 8)
         x3 = x[:, 2, -self.max_seq_len:]
-        x = x1+x2+x3
+        x = x1+x3
         input_mask = torch.LongTensor([self.input_mask] * batch_size).to(device)
         segment_ids = torch.LongTensor([self.segment_ids] * batch_size).to(device)
 

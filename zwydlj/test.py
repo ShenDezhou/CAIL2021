@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', help="specific config file", default="config/model.config")
     parser.add_argument('--gpu', '-g', help="gpu id list", default="0")
-    parser.add_argument('--checkpoint', help="checkpoint file path",  default="output/model/model.bin")
+    parser.add_argument('--checkpoint', help="checkpoint file path",  default=r"output\model\attention\model-6.bin")
     parser.add_argument('--result', help="result file path", default="output/result.csv")
     args = parser.parse_args()
 

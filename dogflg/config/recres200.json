@@ -1,9 +1,9 @@
 {
-  "exp_name": "CNNRES2",
+  "exp_name": "CNNRES200",
   "train_options": {
     "resume_from": "",
     "third_party_name": "",
-    "checkpoint_save_dir": "model/CNNRES2/",
+    "checkpoint_save_dir": "model/CNNRES200/",
     "device": "cuda:0",
     "epochs": 100,
     "fine_tune_stage": [

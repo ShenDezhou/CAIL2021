@@ -3,5 +3,5 @@ services:
     image: ldatopicvis:1.0
     network_mode: "host"
     volumes:
-      - /mnt/data/topldadocker/model/:/workspace/model/
+      - /mnt/data/toplda/model/:/workspace/model/
     command: python3 visual_server.py -p 58063

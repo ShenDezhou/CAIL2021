@@ -1,11 +1,11 @@
 {
   "exp_name": "CNNBERT",
   "train_options": {
-    "resume_from": "",
+    "resume_from": "model/CNNBERT/model.bin",
     "third_party_name": "",
     "checkpoint_save_dir": "model/CNNBERT/",
     "device": "cuda:0",
-    "epochs": 10,
+    "epochs": 100,
     "fine_tune_stage": [
       "backbone",
       "neck",

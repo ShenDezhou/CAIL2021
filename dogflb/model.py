@@ -1,15 +1,15 @@
-from jittor.models import Resnet50, alexnet,googlenet,densenet121,inception_v3,mnasnet0_5,mobilenet_v2, shufflenet_v2_x0_5, squeezenet1_0
+from jittor.models import Resnet50, alexnet,googlenet,densenet121,inception_v3,mnasnet0_5,mobilenet_v2, shufflenet_v2_x0_5, squeezenet1_0, vgg11
 from seresnet import resnet50 as seresnet50
 import jittor.nn as nn
 
-class Net1(nn.Module):
+class Net(nn.Module):
     def __init__(self, num_classes):
-        self.base_net = Resnet50(pretrained=True, num_classes=num_classes)
-        # self.fc = nn.Linear(1000, num_classes)
+        self.base_net = Resnet50(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
     
     def execute(self, x):
         x = self.base_net(x)
-        # x = self.fc(x)
+        x = self.fc(x)
         return x
 
 
@@ -95,9 +95,19 @@ class Net9(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net10(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet50(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net11(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = vgg11(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):
