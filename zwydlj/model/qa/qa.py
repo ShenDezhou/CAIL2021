@@ -10,6 +10,9 @@ from model.layer.Attention import Attention
 from tools.accuracy_tool import single_label_top1_accuracy, multi_label_top1_accuracy
 from model.qa.util import generate_ans, multi_generate_ans
 from model.qa.capsnetx import PrimaryCaps, FCCaps, FlattenCaps
+from model.qa.resnet import resnet50
+from model.qa.seresnet import resnet50 as seresnet50
+from model.qa.densenet import densenet121
 
 class Model(nn.Module):
     def __init__(self, config, gpu_list, *args, **params):
@@ -90,17 +93,19 @@ class ModelX(nn.Module):
 
         self.context_encoder = BertEncoder(config, gpu_list, *args, **params)
         #self.question_encoder = BertEncoder(config, gpu_list, *args, **params)
-        self.context_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-        self.question_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
-
-        self.attention = Attention(config, gpu_list, *args, **params)
-        self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
+        # self.context_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        # self.question_rnn_encoder = LSTMEncoder(config, gpu_list, *args, **params)
+        # self.resnet = resnet50(pretrained=True)
+        self.seresnet = seresnet50(pretrained=True)
+        # self.densenet = densenet121(pretrained=True)
+        # self.attention = Attention(config, gpu_list, *args, **params)
+        # self.dropout = nn.Dropout(config.getfloat("model", "dropout"))
 
 
         self.bce = nn.CrossEntropyLoss(reduction='mean')
         # self.gelu = nn.GELU()
         # self.softmax = nn.Softmax(dim=1)
-        self.rank_module = nn.Linear(self.hidden_size * 2, 4)
+        self.rank_module = nn.Linear(1000, 4)
         self.accuracy_function = single_label_top1_accuracy
 
     def init_multi_gpu(self, device, config, *args, **params):
@@ -113,11 +118,12 @@ class ModelX(nn.Module):
         seq_len = question[0].size()[1]
         context, _ = self.context_encoder(*context)
         if seq_len > 512:
-            n = seq_len // 512
+            window = 512
+            n = seq_len // window
             a,b,c = question
             temp_question = None
             for i in range(n):
-                _a, _b, _c = a[:,i*512:(i+1)*512], b[:,i*512:(i+1)*512], c[:,i*512:(i+1)*512]
+                _a, _b, _c = a[:,i*window:(i+1)*window], b[:, i*window:(i+1)*window], c[:, i*window:(i+1)*window]
                 if torch.any(_b.bool()):
                     _question, _ = self.context_encoder(_a, _b, _c)
                     if i:
@@ -128,21 +134,18 @@ class ModelX(nn.Module):
         else:
             question, _ = self.context_encoder(*question)
 
-        # context = context[-1]
-        # question = question[-1]
-        context = context.view(batch, -1, self.hidden_size)
         question = question.view(batch, -1, self.hidden_size)
-        _, context = self.context_rnn_encoder(context)
-        _, question = self.question_rnn_encoder(question)
+        context = context.view(batch, -1, self.hidden_size)
 
-
-        c, q, a = self.attention(context, question)
-        # c, q = context, question
-        c = torch.mean(c, dim=1)
-        q = torch.mean(q, dim=1)
+        c, q = context, question
+        # c = torch.mean(c, dim=1)
+        # q = torch.mean(q, dim=1)
         y = torch.cat([c, q], dim=1)
-        y = y.view(batch, -1)
-        y = self.dropout(y)
+        y = y.view(batch, -1, 3, self.hidden_size // 3)
+        y = y.transpose(1,2)
+        y = self.seresnet(y)
+        # y = y.view(batch, -1)
+        #y = self.dropout(y)
         y = self.rank_module(y)
 
 
