@@ -2,7 +2,7 @@ from jittor.models import Resnet50, alexnet,googlenet,densenet121,inception_v3,m
 from seresnet import resnet50 as seresnet50
 import jittor.nn as nn
 
-class Net(nn.Module):
+class Net1(nn.Module):
     def __init__(self, num_classes):
         self.base_net = Resnet50(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
@@ -95,7 +95,7 @@ class Net9(nn.Module):
         x = self.fc(x)
         return x
 
-class Net10(nn.Module):
+class Net(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet50(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
