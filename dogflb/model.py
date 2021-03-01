@@ -106,7 +106,7 @@ class Net9(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net10(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet50(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
@@ -116,7 +116,7 @@ class Net(nn.Module):
         x = self.fc(x)
         return x
 
-class Net10_z(nn.Module):
+class Net(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
