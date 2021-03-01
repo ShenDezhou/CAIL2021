@@ -31,16 +31,19 @@ class SELayer(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channel, channel // reduction, bias=False),
-            nn.Relu(inplace=True),
+            nn.Relu(),
             nn.Linear(channel // reduction, channel, bias=False),
             nn.Sigmoid()
         )
 
-    def forward(self, x):
+
+    def execute(self, x):
         b, c, _, _ = x.size()
+
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
+        y = x * y.expand_as(x)
+        return y
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -60,6 +63,7 @@ class BasicBlock(nn.Module):
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = norm_layer(planes)
         self.se = SELayer(planes, reduction)
+
         self.downsample = downsample
         self.stride = stride
 
@@ -94,7 +98,7 @@ class Bottleneck(nn.Module):
         self.conv3 = conv1x1(width, (planes * self.expansion))
         self.bn3 = norm_layer((planes * self.expansion))
         self.relu = nn.Relu()
-        self.se = SELayer(planes * 4, reduction)
+        self.se = SELayer((planes * self.expansion), reduction)
         self.downsample = downsample
         self.stride = stride
 
@@ -108,6 +112,8 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
         out = self.conv3(out)
         out = self.bn3(out)
+        out = self.se(out)
+
         if (self.downsample is not None):
             identity = self.downsample(x)
         out += identity
