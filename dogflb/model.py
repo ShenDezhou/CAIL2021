@@ -14,7 +14,7 @@ class Net1(nn.Module):
         return x
 
 
-class Net1_z(nn.Module):
+class Net(nn.Module):
     def __init__(self, num_classes):
         self.base_net = resnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
@@ -116,7 +116,7 @@ class Net10(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net10_z(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
