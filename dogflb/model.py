@@ -1,7 +1,6 @@
 from jittor.models import Resnet50, resnet152, alexnet,googlenet,densenet121,densenet169, densenet201, inception_v3,mnasnet0_5,mobilenet_v2, shufflenet_v2_x0_5, squeezenet1_0, vgg11
 from seresnet import resnet50 as seresnet50
 from seresnet import resnet152 as seresnet152
-from cbamresnet import resnet152 as csresnet152
 import jittor.nn as nn
 
 class Net1(nn.Module):
@@ -147,9 +146,11 @@ class Net11(nn.Module):
         x = self.fc(x)
         return x
 
+del resnet152
+from cbamresnet import resnet152 as caresnet152
 class Net(nn.Module):
     def __init__(self, num_classes):
-        self.base_net = csresnet152(pretrained=True)
+        self.base_net = caresnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):
