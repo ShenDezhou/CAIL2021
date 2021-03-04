@@ -1,23 +1,24 @@
 {
   "model_type": "bert",
   "max_seq_len": 512,
-  "model_path": "model/rbt3l/",
+  "model_path": "model/rbt3/",
   "log_path": "log/",
 
-  "train_file_path": "data/train.data",
-  "valid_file_path": "data/test.data",
+  "train_file_path": "data/cifar10_test.data",
+  "valid_file_path": "data/cifar10_train.data",
 
   "batch_size": 2,
 
-  "bert_model_path": "../roberta3_large_ext/",
+  "bert_model_path": "../roberta3_ext/",
   "trained_weight":"",
-  "hidden_size": 1024,
-  "num_classes": 130,
+  "hidden_size": 768,
+  "num_classes": 10,
   "dropout": 0.05,
-  "limit": 200,
+  "pretrained": 1,
+  "supervised": false,
 
   "lr": 1e-4,
-  "num_epoch": 10,
+  "num_epoch": 6,
   "log_steps": 100,
   "serial_load": true,
   "metrics_debug": false,

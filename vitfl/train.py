@@ -29,7 +29,7 @@ from transformers.optimization import (
 
 from data import Data
 from evaluate import evaluate, calculate_accuracy_f1, get_labels_from_file
-from model import BertForClassification, BertL3ForClassification, RnnForSentencePairClassification,LogisticRegression, CharCNN
+from model import BertForClassification, RnnForSentencePairClassification, BertXForClassification, BertYForClassification, LogisticRegression, CharCNN
 from utils import get_csv_logger, get_path
 from vocab import build_vocab
 
@@ -50,8 +50,7 @@ import torch_xla.utils.utils as xu
 
 
 MODEL_MAP = {
-    'bert': BertL3ForClassification,
-    'bertxl': BertL3ForClassification,
+    'bert': BertForClassification,
     'rnn': RnnForSentencePairClassification,
     'lr': LogisticRegression,
     'cnn': CharCNN
@@ -461,7 +460,7 @@ def _mp_fn(rank, flags, model,serial):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-c', '--config_file', default='config/roberta3_config.json',
+        '-c', '--config_file', default='config/bert_config.json',
         help='model config file')
 
     parser.add_argument(

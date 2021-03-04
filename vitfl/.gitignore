@@ -12,7 +12,4 @@ dataset_cv100/
 *.pdf
 *.docx
 *.html
-CT*/
 misc/
-data_cp/
-output/

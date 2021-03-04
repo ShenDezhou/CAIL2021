@@ -32,9 +32,6 @@ Usage:
     data = Data('model/bert/vocab.txt', model_type='bert')
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
-import random
-import re
-import unicodedata
 from typing import List
 import jieba
 import joblib
@@ -43,10 +40,11 @@ import torch
 import pandas as pd
 
 from torch.utils.data import TensorDataset
-from transformers import BertTokenizer, AutoTokenizer
+from transformers import BertTokenizer
 # from pytorch_pretrained_bert import BertTokenizer
 from tqdm import tqdm
-from struct import unpack
+
+
 
 class Tokenizer:
     """Tokenizer for Chinese given vocab.txt.
@@ -119,19 +117,16 @@ class Data:
                 Otherwise, use Tokenizer as tokenizer
         """
         self.model_type = model_type
-        if 'bert' == self.model_type:
+        if 'bert' in self.model_type:
             self.tokenizer = BertTokenizer.from_pretrained(config.bert_model_path)#BertTokenizer(vocab_file)
-        elif 'bertxl' == self.model_type:
-            self.tokenizer = AutoTokenizer.from_pretrained(config.bert_model_path)#BertTokenizer(vocab_file)
         else:  # rnn
             self.tokenizer = Tokenizer(vocab_file)
         self.max_seq_len = max_seq_len
-        # self.count_dic = {}
-        self.config = config
+        self.supervised_with_filename = config.supervised
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
-                  train=True, mask=True) -> TensorDataset:
+                  train=True) -> TensorDataset:
         """Load SMP-CAIL2020-Argmine train file and construct TensorDataset.
 
         Args:
@@ -156,12 +151,9 @@ class Data:
                 torch.utils.data.TensorDataset
                     each record: (s1_ids, s2_ids, s1_length, s2_length)
         """
-        sc_list, bc_list, label_list = self._load_file(file_path, train, mask)
-        if 'bert' == self.model_type:
+        sc_list, bc_list, label_list = self._load_file(file_path, train)
+        if 'bert' in self.model_type:
             dataset = self._convert_sentence_pair_to_bert_dataset(
-                sc_list, bc_list, label_list)
-        elif 'bertxl' == self.model_type:
-            dataset = self._convert_sentence_pair_to_bertxl_dataset(
                 sc_list, bc_list, label_list)
         else:  # rnn
             dataset = self._convert_sentence_pair_to_rnn_dataset(
@@ -179,46 +171,18 @@ class Data:
             all are torch.utils.data.TensorDataset
         """
         print('Loading train records for train...')
-        train_set = self.load_file(train_file, True, False)
+        train_set = self.load_file(train_file, True)
         print(len(train_set), 'training records loaded.')
-        if torch.cuda.is_available():
-            print('Loading train records for valid...')
-            valid_set_train = self.load_file(train_file, True, False)
-            print(len(valid_set_train), 'train records loaded.')
-        else:
-            valid_set_train = None
+        # print('Loading train records for valid...')
+        # valid_set_train = self.load_file(train_file, True)
+        # print(len(valid_set_train), 'train records loaded.')
+        valid_set_train = None
         print('Loading valid records...')
-        valid_set_valid = self.load_file(valid_file, True, True)
+        valid_set_valid = self.load_file(valid_file, True)
         print(len(valid_set_valid), 'valid records loaded.')
         return train_set, valid_set_train, valid_set_valid
 
-    # ACC - T1: 88.78846153846153 %
-    # ACC - T5: 98.07692307692308 %
-
-    def random_mask(self, line, mask=True):
-        if mask:
-            return '<mask>'
-        type = line.split('_')[0]
-        return type
-
-    def remove_control_characters(self, s):
-        return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
-
-    def img2index(self, bits):
-        # bits = bits.view(32,32,3)
-        bits = bits.transpose([2, 0, 1])
-
-        unicodestr = ""
-        for i in range(3):
-            # img_size = len(bits[i].tostring())
-            img = bits[i].tostring().decode(encoding="utf-8", errors="ignore")
-            # actrual_size = len(img.encode(encoding='utf-8'))
-            unicodestr += self.remove_control_characters(img).strip()
-        return unicodestr
-
-
-
-    def _load_file(self, filename, train: bool = True, mask: bool = True):
+    def _load_file(self, filename, train: bool = True):
         """Load SMP-CAIL2020-Argmine train/test file.
 
         For train file,
@@ -250,18 +214,18 @@ class Data:
                 sc_tokens = self.tokenizer.tokenize(str(row[1]))
                 bc_tokens = self.tokenizer.tokenize(str(row[2]))
             if type==1:
-                sc_tokens = self.tokenizer.tokenize(self.img2index(row[1]))
-                bc_tokens = self.tokenizer.tokenize(self.random_mask(str(row[2]), mask=mask))
+                sc_tokens = self.tokenizer.convert_ids_to_tokens(list(row[1]))
+                if train:
+                    bc_tokens = self.tokenizer.tokenize(str(row[2]))
+                else:
+                    bc_tokens = self.tokenizer.tokenize('[MASK]' * len(str(row[2])))
             if train:
-                # self.count_dic[int(row[0])-1] = self.count_dic.get(int(row[0])-1, 0) + 1
-                # if self.count_dic[int(row[0])-1] > self.config.limit:
-                #     continue
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
                 if type==0:
-                    label_list.append(int(row[0])-1)
+                    label_list.append(row[0]-1)
                 if type==1:
-                    label_list.append(int(row[0])-1)
+                    label_list.append(row[0])
             else:  # test
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
@@ -289,58 +253,12 @@ class Data:
         for i, _ in tqdm(enumerate(s1_list), ncols=80):
             tokens = ['[CLS]'] + s1_list[i] + ['[SEP]']
             segment_ids = [0] * len(tokens)
-            tokens += s2_list[i] + ['[SEP]']
-            segment_ids += [1] * (len(s2_list[i]) + 1)
+            if self.supervised_with_filename:
+                tokens += s2_list[i] + ['[SEP]']
+                segment_ids += [1] * (len(s2_list[i]) + 1)
+
             if len(tokens) > 512:
                 tokens = tokens[:256] + tokens[-256:]
-                assert len(tokens) == 512
-                segment_ids = segment_ids[:256] + segment_ids[-256:]
-            input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
-            input_mask = [1] * len(input_ids)
-            tokens_len = len(input_ids)
-            input_ids += [0] * (512 - tokens_len)
-            segment_ids += [0] * (512 - tokens_len)
-            input_mask += [0] * (512 - tokens_len)
-            all_input_ids.append(input_ids)
-            all_input_mask.append(input_mask)
-            all_segment_ids.append(segment_ids)
-        all_input_ids = torch.tensor(all_input_ids, dtype=torch.long)
-        all_input_mask = torch.tensor(all_input_mask, dtype=torch.long)
-        all_segment_ids = torch.tensor(all_segment_ids, dtype=torch.long)
-        if label_list:  # train
-            all_label_ids = torch.tensor(label_list, dtype=torch.long)
-            return TensorDataset(
-                all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
-        # test
-        return TensorDataset(
-            all_input_ids, all_input_mask, all_segment_ids)
-
-    def _convert_sentence_pair_to_bertxl_dataset(
-            self, s1_list, s2_list, label_list=None):
-        """Convert sentence pairs to dataset for BERT model.
-
-        Args:
-            sc_list, bc_list: List[List[str]], list of word tokens list
-            label_list: train: List[int], list of labels
-                        test: []
-
-        Returns:
-            Train:
-                torch.utils.data.TensorDataset
-                    each record: (input_ids, input_mask, segment_ids, label)
-            Test:
-                torch.utils.data.TensorDataset
-                    each record: (input_ids, input_mask, segment_ids)
-        """
-        all_input_ids, all_input_mask, all_segment_ids = [], [], []
-        for i, _ in tqdm(enumerate(s1_list), ncols=80):
-            tokens = s1_list[i]
-            segment_ids = [0] * len(tokens)
-            tokens += s2_list[i]
-            segment_ids += [1] * len(s2_list[i])
-            if len(tokens) > 512:
-                tokens = tokens[:256] + tokens[-256:]
-                assert len(tokens) == 512
                 segment_ids = segment_ids[:256] + segment_ids[-256:]
             input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
             input_mask = [1] * len(input_ids)

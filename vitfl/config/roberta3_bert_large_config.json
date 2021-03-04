@@ -4,20 +4,21 @@
   "model_path": "model/rbt3l/",
   "log_path": "log/",
 
-  "train_file_path": "data/train.data",
-  "valid_file_path": "data/test.data",
+  "train_file_path": "data/cifar10_test.data",
+  "valid_file_path": "data/cifar10_train.data",
 
   "batch_size": 2,
 
-  "bert_model_path": "../roberta_wwm_large_ext/",
+  "bert_model_path": "../roberta3_large_ext/",
   "trained_weight":"",
   "hidden_size": 1024,
-  "num_classes": 130,
+  "num_classes": 10,
   "dropout": 0.05,
-  "limit": 200,
+  "pretrained": 1,
+  "supervised": 1,
 
   "lr": 1e-4,
-  "num_epoch": 10,
+  "num_epoch": 5,
   "log_steps": 100,
   "serial_load": true,
   "metrics_debug": false,

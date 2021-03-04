@@ -10,10 +10,10 @@ import torch
 
 from tqdm import tqdm
 from sklearn import metrics
-# from classmerge import classy_dic, indic
+from classmerge import classy_dic, indic
 
-LABELS = [0,1]
-threshold = 0.875
+LABELS = ['1','2']
+
 
 def calculate_accuracy_f1(
         golds: List[str], predicts: List[str]) -> tuple:
@@ -58,9 +58,8 @@ def get_labels_from_file(filename):
         List[str]: label list
     """
     data_frame = pandas.read_csv(filename)
-    labels = data_frame['summary'].tolist()
+    labels = data_frame['type1'].map(indic).tolist()
     return labels
-
 
 def eval_file(golds_file, predicts_file):
     """Evaluate submission file
@@ -77,7 +76,7 @@ def eval_file(golds_file, predicts_file):
     return calculate_accuracy_f1(golds, predicts)
 
 
-def evaluate(model, data_loader, device, isTest=False) -> List[str]:
+def evaluate(model, data_loader, device) -> List[str]:
     """Evaluate model on data loader in device.
 
     Args:
@@ -89,24 +88,18 @@ def evaluate(model, data_loader, device, isTest=False) -> List[str]:
         answer list
     """
     model.eval()
-    # input_ids = torch.tensor([], dtype=torch.long).to(device)
     outputs = torch.tensor([], dtype=torch.float).to(device)
-    gold = torch.tensor([], dtype=torch.float).to(device)
     for batch in tqdm(data_loader, desc='Evaluation', ncols=80):
         batch = tuple(t.to(device) for t in batch)
-        if isTest:
-            with torch.no_grad():
-                logits = torch.round(model(*batch))
-            outputs = torch.cat([outputs, logits[:, :]])
-
-        else:
-            with torch.no_grad():
-                logits = torch.round(model(*batch[:-1]))
-            outputs = torch.cat([outputs, logits[:, :]])
-            # input_ids = torch.cat([input_ids, batch[0][:, :]])
-            gold= torch.cat([gold, batch[1][:, :]])
-
-    return outputs.tolist(), gold.tolist()
+        with torch.no_grad():
+            logits = model(*batch)
+        outputs = torch.cat([outputs, logits[:, :]])
+    answer_list = []
+    for i in range(len(outputs)):
+        logits = outputs[i]
+        answer = int(torch.argmax(logits, dim=-1))
+        answer_list.append(answer)
+    return answer_list
 
 
 if __name__ == '__main__':
