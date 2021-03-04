@@ -4,8 +4,8 @@
   "model_path": "model/rbt3/",
   "log_path": "log/",
 
-  "train_file_path": "data/cifar10_test.data",
-  "valid_file_path": "data/cifar10_train.data",
+  "train_file_path": "data/cifar10_train.data",
+  "valid_file_path": "data/cifar10_test.data",
 
   "batch_size": 2,
 

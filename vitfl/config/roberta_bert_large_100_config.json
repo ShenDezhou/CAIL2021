@@ -4,9 +4,8 @@
   "model_path": "model/bertl/",
   "log_path": "log/",
 
-  "train_file_path": "data/cifar100_test.data",
-  "valid_file_path": "data/cifar100_train.data",
-
+  "train_file_path": "data/cifar100_train.data",
+  "valid_file_path": "data/cifar100_test.data",
   "batch_size": 2,
 
   "bert_model_path": "../roberta_wwm_large_ext/",
