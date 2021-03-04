@@ -1,0 +1,13 @@
+services:
+  web:
+    image: jittor/jittor-cuda
+    environment:
+      - gpus=all
+    stdin_open: true
+    tty: true
+    network_mode: "host"
+    container_name: dog_fl
+    volumes:
+    - /mnt/data/dogfldocker/:/workspace/data
+    - /mnt/data/dogflb:/workspace/dogflb
+    command: bash
