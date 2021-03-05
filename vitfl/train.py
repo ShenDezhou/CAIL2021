@@ -409,6 +409,7 @@ def main(config_file='config/bert_config.json'):
     # Train and eval loops
     accuracy = 0.0
     data, pred, target = None, None, None
+    best_valid_acc = 0
     for epoch in range(FLAGS.num_epoch):
         para_loader = pl.ParallelLoader(data_loader['train'], [device])
         train_loop_fn(para_loader.per_device_loader(device))
@@ -421,6 +422,8 @@ def main(config_file='config/bert_config.json'):
         accuracy_valid, data, pred, target = test_loop_fn(para_loader.per_device_loader(device))
         xm.master_print("Finished test epoch {}, valid={:.2f}".format(epoch, accuracy_valid))
 
+        if accuracy_valid > best_valid_acc:
+            best_valid_acc = accuracy_valid
         if FLAGS.metrics_debug:
             xm.master_print(met.metrics_report())
         # 4. Save model
@@ -433,7 +436,7 @@ def main(config_file='config/bert_config.json'):
             # xm.master_print('saved model.')
             # WRAPPED_MODEL.to(device)
 
-    return accuracy_valid
+    return best_valid_acc
     # 4. Save model
     # torch.save(best_model_state_dict,
     #            os.path.join(config.model_path, 'model.bin'))

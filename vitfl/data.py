@@ -32,6 +32,7 @@ Usage:
     data = Data('model/bert/vocab.txt', model_type='bert')
     test_set = data.load_file('SMP-CAIL2020-test.csv', train=False)
 """
+import random
 from typing import List
 import jieba
 import joblib
@@ -126,7 +127,7 @@ class Data:
 
     def load_file(self,
                   file_path='SMP-CAIL2020-train.csv',
-                  train=True) -> TensorDataset:
+                  train=True, mask_replace=False) -> TensorDataset:
         """Load SMP-CAIL2020-Argmine train file and construct TensorDataset.
 
         Args:
@@ -151,7 +152,7 @@ class Data:
                 torch.utils.data.TensorDataset
                     each record: (s1_ids, s2_ids, s1_length, s2_length)
         """
-        sc_list, bc_list, label_list = self._load_file(file_path, train)
+        sc_list, bc_list, label_list = self._load_file(file_path, train, mask_replace)
         if 'bert' in self.model_type:
             dataset = self._convert_sentence_pair_to_bert_dataset(
                 sc_list, bc_list, label_list)
@@ -178,11 +179,11 @@ class Data:
         # print(len(valid_set_train), 'train records loaded.')
         valid_set_train = None
         print('Loading valid records...')
-        valid_set_valid = self.load_file(valid_file, True)
+        valid_set_valid = self.load_file(valid_file, True, mask_replace=True)
         print(len(valid_set_valid), 'valid records loaded.')
         return train_set, valid_set_train, valid_set_valid
 
-    def _load_file(self, filename, train: bool = True):
+    def _load_file(self, filename, train: bool = True, mask_replace: bool = False):
         """Load SMP-CAIL2020-Argmine train/test file.
 
         For train file,
@@ -215,10 +216,11 @@ class Data:
                 bc_tokens = self.tokenizer.tokenize(str(row[2]))
             if type==1:
                 sc_tokens = self.tokenizer.convert_ids_to_tokens(list(row[1]))
-                if train:
+                if not mask_replace:
                     bc_tokens = self.tokenizer.tokenize(str(row[2]))
                 else:
-                    bc_tokens = self.tokenizer.tokenize('[MASK]' * len(str(row[2])))
+                    bc_tokens = self.tokenizer.tokenize(str(row[2]))
+                    bc_tokens = ['[MASK]'] * len(bc_tokens)
             if train:
                 sc_list.append(sc_tokens)
                 bc_list.append(bc_tokens)
@@ -251,11 +253,16 @@ class Data:
         """
         all_input_ids, all_input_mask, all_segment_ids = [], [], []
         for i, _ in tqdm(enumerate(s1_list), ncols=80):
-            tokens = ['[CLS]'] + s1_list[i] + ['[SEP]']
+            tokens = s1_list[i]
             segment_ids = [0] * len(tokens)
             if self.supervised_with_filename:
-                tokens += s2_list[i] + ['[SEP]']
-                segment_ids += [1] * (len(s2_list[i]) + 1)
+                if len(s2_list[i]):
+                    tokens_index = random.sample(range(len(tokens)), len(s2_list[i]))
+                    for index, ti in enumerate(tokens_index):
+                        tokens[ti] = s2_list[i][index]
+                        segment_ids[ti] = 1
+                # tokens += s2_list[i] + ['[SEP]']
+                # segment_ids += [1] * (len(s2_list[i]) + 1)
 
             if len(tokens) > 512:
                 tokens = tokens[:256] + tokens[-256:]
