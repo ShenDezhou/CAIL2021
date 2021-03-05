@@ -218,6 +218,10 @@ class Data:
                 sc_tokens = self.tokenizer.convert_ids_to_tokens(list(row[1]))
                 if not mask_replace:
                     bc_tokens = self.tokenizer.tokenize(str(row[2]))
+                    mask_len = max(int(len(bc_tokens) * 0.85), 1)
+                    tokens_index = random.sample(range(len(bc_tokens)), mask_len)
+                    for index, ti in enumerate(tokens_index):
+                        bc_tokens[ti] = '[MASK]'
                 else:
                     bc_tokens = self.tokenizer.tokenize(str(row[2]))
                     bc_tokens = ['[MASK]'] * len(bc_tokens)
@@ -256,11 +260,10 @@ class Data:
             tokens = s1_list[i]
             segment_ids = [0] * len(tokens)
             if self.supervised_with_filename:
-                if len(s2_list[i]):
-                    tokens_index = random.sample(range(len(tokens)), len(s2_list[i]))
-                    for index, ti in enumerate(tokens_index):
-                        tokens[ti] = s2_list[i][index]
-                        segment_ids[ti] = 1
+                tokens_index = random.sample(range(len(tokens)), len(s2_list[i]))
+                for index, ti in enumerate(tokens_index):
+                    tokens[ti] = s2_list[i][index]
+                    segment_ids[ti] = 1
                 # tokens += s2_list[i] + ['[SEP]']
                 # segment_ids += [1] * (len(s2_list[i]) + 1)
 
