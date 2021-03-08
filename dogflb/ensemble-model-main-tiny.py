@@ -7,7 +7,7 @@ from dataset import TsinghuaDogExam
 from jittor import transform
 from tqdm import tqdm
 import numpy as np
-from model import Net1_z, Net10_z
+from model import *
 import argparse 
 from collections import Counter
 
