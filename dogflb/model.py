@@ -3,6 +3,7 @@ from seresnet import resnet50 as seresnet50
 from seresnet import resnet152 as seresnet152
 from cbamresnet import resnet152 as caresnet152
 from searesnet import resnet152 as searesnet152
+from aresnet import resnet152 as aresnet152
 import jittor.nn as nn
 
 class Net1(nn.Module):
@@ -159,9 +160,19 @@ class Net12(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net13(nn.Module):
     def __init__(self, num_classes):
         self.base_net = searesnet152(pretrained=True)
+        self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = aresnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):

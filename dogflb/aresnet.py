@@ -64,8 +64,7 @@ class BasicBlock(nn.Module):
         self.relu = nn.Relu()
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = norm_layer(planes)
-        #self.se = SELayer(planes, reduction)
-        #self.at = Attention(256, num_heads=2)
+        self.se = SELayer(planes, reduction)
 
         self.downsample = downsample
         self.stride = stride
@@ -77,8 +76,7 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        #out = self.se(out)
-        out = self.at(out)
+        out = self.se(out)
 
         if (self.downsample is not None):
             identity = self.downsample(x)
@@ -103,7 +101,6 @@ class Bottleneck(nn.Module):
         self.bn3 = norm_layer((planes * self.expansion))
         self.relu = nn.Relu()
         #self.se = SELayer((planes * self.expansion), reduction)
-        self.at = Attention((planes * self.expansion), num_heads=4, kdim=(planes * self.expansion), vdim=(planes * self.expansion), self_attention=True)
 
         self.downsample = downsample
         self.stride = stride
@@ -118,15 +115,7 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
         out = self.conv3(out)
         out = self.bn3(out)
-        #out = self.se(out)
-        origin = out.size()
-        #print(out.size())
-        out = out.flatten(2).transpose(0, 2, 1)
-        #print(out.size())
-        out, out_weights = self.at(out)
-        #print(out.size())
-        out = out.transpose(0, 2, 1).reshape(origin)
-        #print(out.size())
+
 
         if (self.downsample is not None):
             identity = self.downsample(x)
@@ -159,6 +148,12 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+        self.conv2 = conv1x1((512 * block.expansion), 16)
+        self.at = Attention(16, num_heads=16, kdim=16,
+                            vdim=16, self_attention=True)
+        self.conv3 = conv1x1(16, (512 * block.expansion))
+
         self.fc = nn.Linear((512 * block.expansion), num_classes)
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
@@ -186,8 +181,22 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+
+        # out = self.se(out)
+        x = self.conv2(x)
+        origin = x.size()
+        # print(out.size())
+        x = x.flatten(2).transpose(0, 2, 1)
+        # print(out.size())
+        x, out_weights = self.at(x)
+        # print(out.size())
+        x = x.transpose(0, 2, 1).reshape(origin)
+        # print(out.size())
+        x = self.conv3(x)
+
         x = self.avgpool(x)
         x = jt.reshape(x, (x.shape[0], -1))
+
         x = self.fc(x)
         return x
 
