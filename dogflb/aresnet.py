@@ -149,10 +149,10 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
-        self.conv2 = conv1x1((512 * block.expansion), 16)
-        self.at = Attention(16, num_heads=16, kdim=16,
-                            vdim=16, self_attention=True)
-        self.conv3 = conv1x1(16, (512 * block.expansion))
+        self.conv2 = conv1x1((512 * block.expansion), 512)
+        self.at = Attention(512, num_heads=1, kdim=512,
+                            vdim=512, self_attention=True)
+        self.conv3 = conv1x1(512, (512 * block.expansion))
 
         self.fc = nn.Linear((512 * block.expansion), num_classes)
 
