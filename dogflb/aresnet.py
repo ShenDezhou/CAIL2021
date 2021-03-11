@@ -150,7 +150,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.conv2 = conv1x1((512 * block.expansion), 512)
-        self.at = Attention(512, num_heads=1, kdim=512,
+        self.at = Attention(512, num_heads=4, kdim=512,
                             vdim=512, self_attention=True)
         self.conv3 = conv1x1(512, (512 * block.expansion))
 
