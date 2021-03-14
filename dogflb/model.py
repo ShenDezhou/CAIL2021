@@ -182,7 +182,7 @@ class Net14(nn.Module):
         return x
 
 
-class Net(nn.Module):
+class Net15(nn.Module):
     def __init__(self, num_classes):
         self.base_net = gresnet152(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
