@@ -12,7 +12,7 @@
 import jittor as jt
 from jittor import nn
 
-__all__ = ['ResNet', 'Resnet18', 'Resnet34', 'Resnet26', 'Resnet38', 'Resnet50', 'Resnet101', 'Resnet152', 'Resnext50_32x4d', 'Resnext101_32x8d', 'Wide_resnet50_2', 'Wide_resnet101_2',
+__all__ = ['ResNet', 'Resnet18', 'Resnet34', 'Resnet26', 'Resnet38', 'Resnet50', 'Resnet101', 'Resnet152', 'Resnet200', 'Resnext50_32x4d', 'Resnext101_32x8d', 'Wide_resnet50_2', 'Wide_resnet101_2',
     'resnet18', 'resnet34', 'resnet26', 'resnet38', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2']
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -232,6 +232,12 @@ def Resnet152(pretrained=False, **kwargs):
     if pretrained: model.load("jittorhub://resnet152.pkl")
     return model
 resnet152 = Resnet152
+
+def Resnet200(pretrained=False, **kwargs):
+    model = _resnet(Bottleneck, [3, 8, 48, 3], **kwargs)
+    if pretrained: model.load("jittorhub://resnet200.pkl")
+    return model
+resnet200 = Resnet200
 
 def Resnext50_32x4d(pretrained=False, **kwargs):
     kwargs['groups'] = 32
