@@ -235,7 +235,7 @@ resnet152 = Resnet152
 
 def Resnet200(pretrained=False, **kwargs):
     model = _resnet(Bottleneck, [3, 8, 48, 3], **kwargs)
-    if pretrained: model.load("jittorhub://resnet200.pkl")
+    if pretrained: model.load("jittorhub://resnet152.pkl")
     return model
 resnet200 = Resnet200
 

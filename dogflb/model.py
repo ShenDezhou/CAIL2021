@@ -242,7 +242,7 @@ class Net16_z(nn.Module):
 
 class Net(nn.Module):
     def __init__(self, num_classes):
-        self.base_net = seresnet200(pretrained=False)
+        self.base_net = seresnet200(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
 
     def execute(self, x):
