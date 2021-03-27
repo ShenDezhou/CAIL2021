@@ -227,7 +227,7 @@ class Net15(nn.Module):
         x = self.fc(x)
         return x
 
-class Net16(nn.Module):
+class Net(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet152(pretrained=True)
         self.comp_net = resnet152(pretrained=True)
