@@ -227,7 +227,7 @@ class Net15(nn.Module):
         x = self.fc(x)
         return x
 
-class Net(nn.Module):
+class Net16(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet152(pretrained=True)
         self.comp_net = resnet152(pretrained=True)
@@ -265,6 +265,24 @@ class Net17(nn.Module):
     def __init__(self, num_classes):
         self.base_net = seresnet200(pretrained=True)
         self.fc = nn.Linear(1000, num_classes)
+
+    def execute(self, x):
+        x = self.base_net(x)
+        x = self.fc(x)
+        return x
+
+class Net(nn.Module):
+    def __init__(self, num_classes):
+        self.base_net = seresnet152(pretrained=True)
+        self.fc = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(1000, 4096),
+            nn.Relu(),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.Relu(),
+            nn.Linear(4096, num_classes)
+        )
 
     def execute(self, x):
         x = self.base_net(x)
